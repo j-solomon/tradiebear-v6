@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   description: "Quality contractor referrals for your home services needs",
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function RootLayout({
   children,
 }: {
