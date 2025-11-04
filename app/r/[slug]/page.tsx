@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import ReferralForm from './referral-form'
 
+export const dynamic = 'force-dynamic'
+
 interface PageProps {
   params: {
     slug: string
