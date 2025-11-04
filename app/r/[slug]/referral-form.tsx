@@ -174,7 +174,7 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
           <h2 className="text-2xl font-bold">Thank You!</h2>
           <p className="text-muted-foreground">
-            We've received your estimate request and will contact you shortly.
+            We&apos;ve received your estimate request and will contact you shortly.
           </p>
         </CardContent>
       </Card>
