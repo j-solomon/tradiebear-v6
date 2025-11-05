@@ -131,23 +131,20 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
       const { error: insertError } = await supabase
         .from('leads')
         .insert({
-          referral_link_id: referralLinkId,
+          referral_id: referralLinkId,
           service_id: formData.service_id,
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
-          street: formData.street,
+          address: formData.street,
           city: formData.city,
           state: formData.state,
           zip: formData.zip,
           budget: formData.budget ? parseFloat(formData.budget) : null,
           timeline: formData.timeline,
           notes: formData.notes,
-          attachments: imageUrls,
-          consent_email: formData.consent_email,
-          consent_sms: formData.consent_sms,
-          consent_call: formData.consent_call,
-          stage: 'new',
+          files: imageUrls.length > 0 ? imageUrls : null,
+          stage: 'submitted',
         })
 
       if (insertError) throw insertError

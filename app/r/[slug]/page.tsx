@@ -19,12 +19,11 @@ export default async function ReferralPage({ params }: PageProps) {
     .select(`
       *,
       profiles:user_id (
-        full_name,
-        company_name
+        name,
+        handle
       )
     `)
     .eq('slug', params.slug)
-    .eq('is_active', true)
     .single()
 
   if (error || !referralLink) {
@@ -45,7 +44,7 @@ export default async function ReferralPage({ params }: PageProps) {
           <h1 className="text-4xl font-bold mb-2">Get Your Free Estimate</h1>
           {referralLink.profiles && (
             <p className="text-muted-foreground text-lg">
-              Referred by {referralLink.profiles.company_name || referralLink.profiles.full_name}
+              Referred by {referralLink.profiles.name || referralLink.profiles.handle}
             </p>
           )}
         </div>

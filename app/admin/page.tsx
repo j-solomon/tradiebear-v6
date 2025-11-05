@@ -37,9 +37,9 @@ export default async function AdminPage() {
       .select(`
         *,
         service:services(name),
-        referral_link:referral_links(
+        referral_link:referral_links!referral_id(
           slug,
-          profiles:user_id(full_name, company_name)
+          profiles:user_id(name, handle)
         )
       `)
       .order('created_at', { ascending: false })
@@ -47,11 +47,11 @@ export default async function AdminPage() {
     supabase
       .from('services')
       .select('*')
-      .order('name'),
+      .order('sort_order', { ascending: true }),
     supabase
-      .from('service_areas')
+      .from('service_area_map')
       .select('*')
-      .order('state, county, city'),
+      .order('state_code', { ascending: true }),
     supabase
       .from('commission_tiers')
       .select('*')

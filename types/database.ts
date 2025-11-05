@@ -3,9 +3,10 @@
 export interface Profile {
   id: string
   email: string
-  full_name?: string
-  company_name?: string
-  role: 'admin' | 'partner' | 'user'
+  name?: string
+  handle?: string
+  phone?: string
+  role: 'admin' | 'partner'
   created_at: string
   updated_at: string
 }
@@ -14,8 +15,9 @@ export interface ReferralLink {
   id: string
   user_id: string
   slug: string
-  is_active: boolean
+  clicks?: number
   created_at: string
+  updated_at: string
   profiles?: Profile
 }
 
@@ -24,46 +26,58 @@ export interface Service {
   name: string
   description?: string
   is_active: boolean
+  sort_order?: number
+  tags?: string[]
   created_at: string
+  updated_at: string
+}
+
+export interface SubService {
+  id: string
+  service_id: string
+  name: string
+  description?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
 export interface Lead {
   id: string
-  referral_link_id: string
+  referral_id: string
   service_id: string
   name: string
   email: string
   phone: string
-  street: string
+  address: string
   city: string
   state: string
   zip: string
   budget?: number
   timeline?: string
   notes?: string
-  attachments?: string[]
-  consent_email: boolean
-  consent_sms: boolean
-  consent_call: boolean
-  stage: 'new' | 'contacted' | 'qualified' | 'quoted' | 'won' | 'lost'
+  files?: any
+  stage: 'submitted' | 'est_scheduled' | 'completed' | 'paid'
   created_at: string
   updated_at: string
 }
 
-export interface ServiceArea {
+export interface ServiceAreaMap {
   id: string
-  state?: string
-  county?: string
-  city?: string
-  zip?: string
+  service_id: string
+  state_code?: string
+  county_id?: string
+  city_id?: string
+  zip_id?: string
+  is_active: boolean
   created_at: string
 }
 
 export interface CommissionTier {
   id: string
+  sub_service_id: string
   min_amount: number
-  max_amount?: number
-  percentage: number
+  percent: number
   created_at: string
 }
 
