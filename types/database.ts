@@ -15,7 +15,9 @@ export interface ReferralLink {
   id: string
   user_id: string
   slug: string
-  clicks?: number
+  clicks: number
+  is_active: boolean
+  last_click_at?: string
   created_at: string
   updated_at: string
   profiles?: Profile

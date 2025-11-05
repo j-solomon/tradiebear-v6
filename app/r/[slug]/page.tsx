@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import ReferralForm from './referral-form'
+import { trackReferralClick } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,9 +10,10 @@ interface PageProps {
   params: {
     slug: string
   }
+  searchParams: { [key: string]: string | string[] | undefined }
 }
 
-export default async function ReferralPage({ params }: PageProps) {
+export default async function ReferralPage({ params, searchParams }: PageProps) {
   const supabase = await createClient()
 
   // Fetch the referral link data
@@ -28,6 +31,24 @@ export default async function ReferralPage({ params }: PageProps) {
 
   if (error || !referralLink) {
     notFound()
+  }
+
+  // Track click and set cookie
+  const trackResult = await trackReferralClick({
+    slug: params.slug,
+    searchParams
+  })
+
+  if (trackResult.success && trackResult.referral_id) {
+    // Set first-party cookie for attribution (7 days, httpOnly)
+    const cookieStore = await cookies()
+    cookieStore.set('tb_ref', trackResult.referral_id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+      path: '/'
+    })
   }
 
   // Fetch active services

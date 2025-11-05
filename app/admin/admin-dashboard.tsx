@@ -12,6 +12,8 @@ import ServicesTab from "./tabs/services-tab"
 import AreasTab from "./tabs/areas-tab"
 import CommissionsTab from "./tabs/commissions-tab"
 import SupportTab from "./tabs/support-tab"
+import ReferralLinksTab from "./tabs/referral-links-tab"
+import { ReferralLink } from "@/types/database"
 
 interface AdminDashboardProps {
   initialLeads: any[]
@@ -19,7 +21,9 @@ interface AdminDashboardProps {
   initialAreas: any[]
   initialCommissions: any[]
   initialTickets: any[]
+  initialReferralLinks: ReferralLink[]
   userEmail: string
+  userRole: string
 }
 
 export default function AdminDashboard({
@@ -28,7 +32,9 @@ export default function AdminDashboard({
   initialAreas,
   initialCommissions,
   initialTickets,
+  initialReferralLinks,
   userEmail,
+  userRole,
 }: AdminDashboardProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("leads")
@@ -64,8 +70,9 @@ export default function AdminDashboard({
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-3xl grid-cols-5">
+          <TabsList className="grid w-full max-w-4xl grid-cols-6">
             <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="referrals">Referrals</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="areas">Areas</TabsTrigger>
             <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -74,6 +81,10 @@ export default function AdminDashboard({
 
           <TabsContent value="leads" className="mt-6">
             <LeadsTab initialLeads={initialLeads} />
+          </TabsContent>
+
+          <TabsContent value="referrals" className="mt-6">
+            <ReferralLinksTab initialLinks={initialReferralLinks} userRole={userRole} />
           </TabsContent>
 
           <TabsContent value="services" className="mt-6">

@@ -20,9 +20,11 @@ export default async function AdminPage() {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') {
+  if (profile?.role !== 'admin' && profile?.role !== 'partner') {
     redirect('/login')
   }
+
+  const userRole = profile?.role || 'partner'
 
   // Fetch initial data
   const [
@@ -31,6 +33,7 @@ export default async function AdminPage() {
     { data: areas },
     { data: commissions },
     { data: supportTickets },
+    { data: referralLinks },
   ] = await Promise.all([
     supabase
       .from('leads')
@@ -61,6 +64,30 @@ export default async function AdminPage() {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(50),
+    // Fetch referral links - admins see all, partners see only their own
+    userRole === 'admin'
+      ? supabase
+          .from('referral_links')
+          .select(`
+            *,
+            profiles:user_id (
+              name,
+              handle,
+              email
+            )
+          `)
+          .order('created_at', { ascending: false })
+      : supabase
+          .from('referral_links')
+          .select(`
+            *,
+            profiles:user_id (
+              name,
+              handle,
+              email
+            )
+          `)
+          .eq('user_id', user.id),
   ])
 
   return (
@@ -70,7 +97,9 @@ export default async function AdminPage() {
       initialAreas={areas || []}
       initialCommissions={commissions || []}
       initialTickets={supportTickets || []}
+      initialReferralLinks={referralLinks || []}
       userEmail={user.email || ''}
+      userRole={userRole}
     />
   )
 }
