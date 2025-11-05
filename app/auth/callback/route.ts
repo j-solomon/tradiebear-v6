@@ -5,7 +5,10 @@ import { NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') || '/admin'
+  const next = requestUrl.searchParams.get('next')
+  
+  // Check if this is a password recovery flow
+  const type = requestUrl.searchParams.get('type')
 
   if (code) {
     const supabase = await createClient()
@@ -18,7 +21,13 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Redirect to the requested page or admin dashboard
-  return NextResponse.redirect(new URL(next, requestUrl.origin))
+  // If this is a password recovery, redirect to reset password page
+  if (type === 'recovery') {
+    return NextResponse.redirect(new URL('/reset-password', requestUrl.origin))
+  }
+
+  // Otherwise redirect to the requested page or admin dashboard
+  const redirectTo = next || '/admin'
+  return NextResponse.redirect(new URL(redirectTo, requestUrl.origin))
 }
 
