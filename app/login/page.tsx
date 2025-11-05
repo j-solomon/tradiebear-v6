@@ -43,13 +43,35 @@ function LoginForm() {
 
     if (data.user) {
       // Check if user is admin
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
         .single()
 
-      if (profile?.role === 'admin') {
+      if (profileError) {
+        console.error('Profile fetch error:', profileError)
+        toast({
+          variant: "destructive",
+          title: "Error Loading Profile",
+          description: `Could not load profile: ${profileError.message}`,
+        })
+        setLoading(false)
+        return
+      }
+
+      if (!profile) {
+        toast({
+          variant: "destructive",
+          title: "Profile Not Found",
+          description: "No profile exists for this user. Please contact support.",
+        })
+        await supabase.auth.signOut()
+        setLoading(false)
+        return
+      }
+
+      if (profile.role === 'admin') {
         const redirect = searchParams.get('redirect') || '/admin'
         router.push(redirect)
         router.refresh()
@@ -57,7 +79,7 @@ function LoginForm() {
         toast({
           variant: "destructive",
           title: "Access Denied",
-          description: "You don't have admin access.",
+          description: `Your role is '${profile.role}'. Admin access required.`,
         })
         await supabase.auth.signOut()
         setLoading(false)
