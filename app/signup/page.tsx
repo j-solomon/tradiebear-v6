@@ -82,15 +82,6 @@ export default function SignupPage() {
       return
     }
 
-    if (!formData.marketing_consent) {
-      toast({
-        variant: "destructive",
-        title: "Consent required",
-        description: "You must provide consent for marketing communications.",
-      })
-      return
-    }
-
     setLoading(true)
 
     try {
@@ -332,7 +323,7 @@ export default function SignupPage() {
                   htmlFor="marketing"
                   className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  I consent to receive marketing communications via email and SMS (TCPA Compliance) *
+                  I consent to receive marketing communications via email and SMS (TCPA Compliance)
                 </label>
               </div>
             </div>
