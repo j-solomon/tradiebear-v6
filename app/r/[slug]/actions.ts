@@ -30,7 +30,7 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
     // Get referral link data
     const { data: referralLink, error: linkError } = await supabase
       .from('referral_links')
-      .select('id, user_id, clicks, is_active')
+      .select('id, user_id, click_count, is_active')
       .eq('slug', slug)
       .single()
 
