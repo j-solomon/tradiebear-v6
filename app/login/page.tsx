@@ -16,6 +16,8 @@ function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -87,6 +89,89 @@ function LoginForm() {
     }
   }
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "Please enter your email address.",
+      })
+      return
+    }
+
+    setResetLoading(true)
+
+    const supabase = createClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    })
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      })
+      setResetLoading(false)
+      return
+    }
+
+    toast({
+      title: "Check Your Email",
+      description: "We've sent you a password reset link.",
+    })
+    setResetLoading(false)
+    setShowForgotPassword(false)
+  }
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">Reset Password</CardTitle>
+            <CardDescription className="text-center">
+              Enter your email address and we&apos;ll send you a reset link
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@tradiebear.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={resetLoading}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={resetLoading}>
+                {resetLoading ? "Sending..." : "Send Reset Link"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setShowForgotPassword(false)}
+                disabled={resetLoading}
+              >
+                Back to Login
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="absolute top-4 right-4">
@@ -114,7 +199,17 @@ function LoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-primary hover:underline"
+                  disabled={loading}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <Input
                 id="password"
                 type="password"
