@@ -115,10 +115,18 @@ export default function SignupPage() {
       })
 
       if (result.error) {
+        // Improve rate limit error message
+        let errorMessage = result.error
+        if (result.error.includes("24 seconds") || result.error.includes("rate limit")) {
+          errorMessage = "Please wait a moment before trying again. This is a security measure to prevent spam."
+        } else if (result.error.includes("already exists")) {
+          errorMessage = "An account with this email already exists. Please login instead."
+        }
+        
         toast({
           variant: "destructive",
           title: "Signup failed",
-          description: result.error,
+          description: errorMessage,
         })
         setLoading(false)
         return
