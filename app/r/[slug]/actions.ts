@@ -108,7 +108,7 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
     const { error: updateError } = await supabase
       .from('referral_links')
       .update({
-        clicks: referralLink.clicks + 1,
+        click_count: referralLink.click_count + 1,
         last_click_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })

@@ -45,7 +45,7 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
   const totalLeads = leads.length
   const pendingLeads = leads.filter(l => l.stage === 'submitted').length
   const completedLeads = leads.filter(l => l.stage === 'completed' || l.stage === 'paid').length
-  const totalClicks = referralLink?.clicks || 0
+  const totalClicks = referralLink?.click_count || 0
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

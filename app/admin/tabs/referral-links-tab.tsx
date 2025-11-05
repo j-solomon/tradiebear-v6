@@ -186,7 +186,7 @@ export default function ReferralLinksTab({ initialLinks, userRole }: ReferralLin
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="secondary">{link.clicks || 0}</Badge>
+                      <Badge variant="secondary">{link.click_count || 0}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatLastClick(link.last_click_at)}
