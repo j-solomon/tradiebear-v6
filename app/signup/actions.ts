@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 interface SignupData {
   name: string
@@ -64,9 +64,10 @@ export async function signupPartner(data: SignupData) {
       }
     }
 
-    // Insert profile with role='partner'
+    // Insert profile with role='partner' using service role to bypass RLS
     // Note: The user won't be able to login until they verify their email
-    const { error: profileError } = await supabase
+    const supabaseAdmin = createServiceClient()
+    const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
         id: authData.user.id,
@@ -79,8 +80,6 @@ export async function signupPartner(data: SignupData) {
 
     if (profileError) {
       console.error('Profile creation error:', profileError)
-      // If profile creation fails, we should delete the auth user
-      // But Supabase doesn't allow this easily, so log the error
       return {
         error: 'Account created but profile setup failed. Please contact support.'
       }
