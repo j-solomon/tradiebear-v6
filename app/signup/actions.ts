@@ -64,18 +64,22 @@ export async function signupPartner(data: SignupData) {
       }
     }
 
-    // Insert profile with role='partner' using service role to bypass RLS
+    // Upsert profile with role='partner' using service role to bypass RLS
+    // Using upsert instead of insert to handle retry attempts gracefully
     // Note: The user won't be able to login until they verify their email
     const supabaseAdmin = createServiceClient()
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert({
+      .upsert({
         id: authData.user.id,
         email: data.email,
         name: data.name,
         handle: data.business_name || data.name.toLowerCase().replace(/\s+/g, '-'),
         phone: data.phone || null,
         role: 'partner',
+      }, {
+        onConflict: 'id',
+        ignoreDuplicates: false
       })
 
     if (profileError) {

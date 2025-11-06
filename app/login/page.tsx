@@ -34,11 +34,20 @@ function LoginForm() {
     })
 
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      })
+      // Check if the error is due to unverified email
+      if (error.message.toLowerCase().includes('email not confirmed')) {
+        toast({
+          variant: "destructive",
+          title: "Email Not Verified",
+          description: "Please check your inbox and verify your email address before logging in.",
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message,
+        })
+      }
       setLoading(false)
       return
     }
