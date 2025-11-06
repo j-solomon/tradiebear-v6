@@ -127,8 +127,12 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
--- 2. RLS Policies
+-- 2. RLS Policies (Drop existing first, then recreate)
 -- ============================================================
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "partners_read_own_links" ON referral_links;
+DROP POLICY IF EXISTS "admins_can_write_referral_links" ON referral_links;
 
 -- Partners can read their own referral links
 CREATE POLICY "partners_read_own_links" ON referral_links
@@ -183,6 +187,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop existing trigger if it exists, then recreate
+DROP TRIGGER IF EXISTS on_profile_created ON profiles;
 
 CREATE TRIGGER on_profile_created
   AFTER INSERT ON profiles
