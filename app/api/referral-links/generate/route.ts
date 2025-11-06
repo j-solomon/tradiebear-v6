@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the target user's handle or email for slug generation
+    // Get the target user's profile data for slug generation
     const { data: targetProfile, error: targetError } = await supabase
       .from('profiles')
-      .select('handle, email')
+      .select('name, business_name, email')
       .eq('id', user_id)
       .single()
 
@@ -53,10 +53,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate new slug using Postgres function
-    const baseHandle = targetProfile.handle || targetProfile.email
+    // Generate new slug using Postgres function with human-friendly parameters
     const { data: slugData, error: slugError } = await supabase
-      .rpc('gen_referral_slug', { base_handle: baseHandle })
+      .rpc('gen_referral_slug', { 
+        full_name: targetProfile.name,
+        business_name: targetProfile.business_name,
+        email: targetProfile.email
+      })
 
     if (slugError) {
       console.error('Error generating slug:', slugError)
