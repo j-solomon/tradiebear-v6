@@ -17,12 +17,21 @@ interface Service {
   name: string
 }
 
+interface SubService {
+  id: string
+  service_id: string
+  name: string
+  slug: string
+  description?: string
+}
+
 interface ReferralFormProps {
   referralLinkId: string
   services: Service[]
+  subServices: SubService[]
 }
 
-export default function ReferralForm({ referralLinkId, services }: ReferralFormProps) {
+export default function ReferralForm({ referralLinkId, services, subServices }: ReferralFormProps) {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [files, setFiles] = useState<File[]>([])
@@ -38,6 +47,7 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
     state: "",
     zip: "",
     service_id: "",
+    sub_service_id: "",
     budget: "",
     timeline: "",
     notes: "",
@@ -46,6 +56,11 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
     consent_call: false,
     consent_terms: false,
   })
+
+  // Filter sub-services based on selected service
+  const availableSubServices = formData.service_id
+    ? subServices.filter(sub => sub.service_id === formData.service_id)
+    : []
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -144,7 +159,7 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
         .from('leads')
         .insert({
           referral_id: referralLinkId,
-          sub_service_id: formData.service_id,
+          sub_service_id: formData.sub_service_id,
           homeowner_first: firstName,
           homeowner_last: lastName,
           homeowner_email: formData.email,
@@ -314,15 +329,15 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
             <h3 className="text-lg font-semibold">Project Details</h3>
             
             <div className="space-y-2">
-              <Label htmlFor="service">Service Type *</Label>
+              <Label htmlFor="service">Service Category *</Label>
               <Select
                 required
                 value={formData.service_id}
-                onValueChange={(value) => setFormData({ ...formData, service_id: value })}
+                onValueChange={(value) => setFormData({ ...formData, service_id: value, sub_service_id: "" })}
                 disabled={loading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a service" />
+                  <SelectValue placeholder="Select a service category" />
                 </SelectTrigger>
                 <SelectContent>
                   {services.map((service) => (
@@ -333,6 +348,34 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.service_id && (
+              <div className="space-y-2">
+                <Label htmlFor="sub_service">Specific Service *</Label>
+                <Select
+                  required
+                  value={formData.sub_service_id}
+                  onValueChange={(value) => setFormData({ ...formData, sub_service_id: value })}
+                  disabled={loading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select specific service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubServices.map((subService) => (
+                      <SelectItem key={subService.id} value={subService.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{subService.name}</span>
+                          {subService.description && (
+                            <span className="text-xs text-muted-foreground">{subService.description}</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">

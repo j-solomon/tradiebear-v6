@@ -44,12 +44,19 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
     // Don't fail the page if tracking fails
   }
 
-  // Fetch active services
-  const { data: services } = await supabase
-    .from('services')
-    .select('*')
-    .eq('active', true)
-    .order('name')
+  // Fetch active services and sub-services
+  const [{ data: services }, { data: subServices }] = await Promise.all([
+    supabase
+      .from('services')
+      .select('*')
+      .eq('active', true)
+      .order('name'),
+    supabase
+      .from('sub_services')
+      .select('*')
+      .eq('active', true)
+      .order('name')
+  ])
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -66,6 +73,7 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
         <ReferralForm 
           referralLinkId={referralLink.id}
           services={services || []}
+          subServices={subServices || []}
         />
       </div>
     </div>
