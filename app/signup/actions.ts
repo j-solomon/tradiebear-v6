@@ -74,7 +74,8 @@ export async function signupPartner(data: SignupData) {
         id: authData.user.id,
         email: data.email,
         name: data.name,
-        handle: data.business_name || data.name.toLowerCase().replace(/\s+/g, '-'),
+        business_name: data.business_name || null,
+        handle: data.name.toLowerCase().replace(/\s+/g, '-'),
         phone: data.phone || null,
         role: 'partner',
       }, {
