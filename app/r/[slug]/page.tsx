@@ -6,14 +6,13 @@ import { trackReferralClick } from './actions'
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
-  params: Promise<{
+  params: {
     slug: string
-  }>
+  }
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export default async function ReferralPage({ params, searchParams }: PageProps) {
-  const { slug } = await params
   const supabase = await createClient()
 
   // Fetch the referral link data
@@ -26,7 +25,7 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
         handle
       )
     `)
-    .eq('slug', slug)
+    .eq('slug', params.slug)
     .single()
 
   if (error || !referralLink) {
@@ -35,7 +34,7 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
 
   // Track click (cookie will be set client-side)
   await trackReferralClick({
-    slug,
+    slug: params.slug,
     searchParams
   })
 
