@@ -61,13 +61,13 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
         return
       }
 
-      // Validate file sizes
-      const oversizedFiles = newFiles.filter(file => file.size > 10 * 1024 * 1024)
+      // Validate file sizes (20 MB per file)
+      const oversizedFiles = newFiles.filter(file => file.size > 20 * 1024 * 1024)
       if (oversizedFiles.length > 0) {
         toast({
           variant: "destructive",
           title: "File too large",
-          description: "Each file must be less than 10 MB.",
+          description: "Each file must be less than 20 MB.",
         })
         return
       }
@@ -362,7 +362,7 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Photos (Optional)</h3>
             <p className="text-sm text-muted-foreground">
-              Upload up to 10 images (JPG, PNG, HEIC). Max 10 MB each.
+              Upload up to 10 images (JPG, PNG, HEIC). Max 20 MB each.
             </p>
             
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
