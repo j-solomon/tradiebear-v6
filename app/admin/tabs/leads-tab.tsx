@@ -75,9 +75,10 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
   const filteredLeads = leads.filter((lead) => {
     const matchesStage = stageFilter === "all" || lead.stage === stageFilter
     const matchesSearch = 
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm)
+      lead.homeowner_first?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.homeowner_last?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.homeowner_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.homeowner_phone?.includes(searchTerm)
     return matchesStage && matchesSearch
   })
 
