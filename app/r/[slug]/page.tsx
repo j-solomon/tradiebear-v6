@@ -42,7 +42,7 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
   const { data: services } = await supabase
     .from('services')
     .select('*')
-    .eq('active', true)
+    .eq('is_active', true)
     .order('name')
 
   return (
