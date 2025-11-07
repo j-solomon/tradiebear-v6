@@ -87,7 +87,7 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
   const { data: services, error: servicesError } = await supabase
     .from('services')
     .select('*')
-    .eq('is_active', true)
+    .eq('active', true)
     .order('name')
 
   if (servicesError) {

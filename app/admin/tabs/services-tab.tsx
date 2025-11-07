@@ -13,7 +13,7 @@ interface Service {
   id: string
   name: string
   description?: string
-  is_active: boolean
+  active: boolean
   created_at: string
 }
 
@@ -29,7 +29,7 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
     const supabase = createClient()
     const { error } = await supabase
       .from('services')
-      .update({ is_active: !currentState })
+      .update({ active: !currentState })
       .eq('id', serviceId)
 
     if (error) {
@@ -42,7 +42,7 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
     }
 
     setServices(services.map(service =>
-      service.id === serviceId ? { ...service, is_active: !currentState } : service
+      service.id === serviceId ? { ...service, active: !currentState } : service
     ))
 
     toast({
@@ -92,8 +92,8 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
                     {service.description || <span className="text-muted-foreground">No description</span>}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={service.is_active ? "default" : "secondary"}>
-                      {service.is_active ? "Active" : "Inactive"}
+                    <Badge variant={service.active ? "default" : "secondary"}>
+                      {service.active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -102,11 +102,11 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-sm text-muted-foreground">
-                        {service.is_active ? "Active" : "Inactive"}
+                        {service.active ? "Active" : "Inactive"}
                       </span>
                       <Switch
-                        checked={service.is_active}
-                        onCheckedChange={() => toggleServiceActive(service.id, service.is_active)}
+                        checked={service.active}
+                        onCheckedChange={() => toggleServiceActive(service.id, service.active)}
                       />
                     </div>
                   </TableCell>

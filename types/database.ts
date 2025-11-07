@@ -27,7 +27,7 @@ export interface Service {
   id: string
   name: string
   description?: string
-  is_active: boolean
+  active: boolean
   sort_order?: number
   tags?: string[]
   created_at: string
