@@ -125,23 +125,38 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
         }
       }
 
+      // Prepare extra details with attachments and consent info
+      const extraDetails: any = {
+        attachments: imageFilePaths.length > 0 ? imageFilePaths : [],
+        consent_email: formData.consent_email,
+        consent_sms: formData.consent_sms,
+        consent_call: formData.consent_call,
+        consent_terms: formData.consent_terms
+      }
+
+      // Split name into first and last
+      const nameParts = formData.name.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
       // Insert lead
       const { error: insertError } = await supabase
         .from('leads')
         .insert({
-          referral_link_id: referralLinkId,
-          service_id: formData.service_id,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          street: formData.street,
+          referral_id: referralLinkId,
+          sub_service_id: formData.service_id,
+          homeowner_first: firstName,
+          homeowner_last: lastName,
+          homeowner_email: formData.email,
+          homeowner_phone: formData.phone,
+          address_street: formData.street,
           city: formData.city,
           state: formData.state,
           zip: formData.zip,
-          budget: formData.budget ? parseFloat(formData.budget) : null,
+          budget_estimate: formData.budget ? parseFloat(formData.budget) : null,
           timeline: formData.timeline,
           notes: formData.notes,
-          attachments: imageFilePaths.length > 0 ? imageFilePaths : null,
+          extra_details: extraDetails,
           stage: 'submitted',
         })
 
