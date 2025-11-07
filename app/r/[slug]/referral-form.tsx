@@ -109,7 +109,7 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
 
     try {
       // Upload images if any
-      let imageUrls: string[] = []
+      let imageFilePaths: string[] = []
       if (files.length > 0) {
         for (const file of files) {
           const fileName = `${Date.now()}-${file.name}`
@@ -119,11 +119,9 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
 
           if (error) throw error
           
-          const { data: { publicUrl } } = supabase.storage
-            .from('lead-attachments')
-            .getPublicUrl(fileName)
-          
-          imageUrls.push(publicUrl)
+          // Store just the file path, not a public URL
+          // Signed URLs will be generated when needed
+          imageFilePaths.push(fileName)
         }
       }
 
@@ -143,7 +141,7 @@ export default function ReferralForm({ referralLinkId, services }: ReferralFormP
           budget: formData.budget ? parseFloat(formData.budget) : null,
           timeline: formData.timeline,
           notes: formData.notes,
-          files: imageUrls.length > 0 ? imageUrls : null,
+          files: imageFilePaths.length > 0 ? imageFilePaths : null,
           stage: 'submitted',
         })
 
