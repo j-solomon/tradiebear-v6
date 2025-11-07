@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { headers } from 'next/headers'
 
 interface TrackClickParams {
@@ -10,7 +10,8 @@ interface TrackClickParams {
 
 export async function trackReferralClick({ slug, searchParams }: TrackClickParams) {
   try {
-    const supabase = await createClient()
+    // Use service role client to bypass RLS for click tracking
+    const supabase = createServiceClient()
     const headersList = await headers()
     
     // Extract IP address (try various headers)
@@ -23,7 +24,6 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
     
     // Basic bot detection: require User-Agent
     if (!userAgent) {
-      console.log('Click rejected: No User-Agent')
       return { success: false, reason: 'No User-Agent' }
     }
 
@@ -35,12 +35,10 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
       .single()
 
     if (linkError || !referralLink) {
-      console.error('Referral link not found:', slug)
       return { success: false, reason: 'Link not found' }
     }
 
     if (!referralLink.is_active) {
-      console.log('Click rejected: Link inactive')
       return { success: false, reason: 'Link inactive' }
     }
 
@@ -57,7 +55,6 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
       .limit(1)
 
     if (recentClicks && recentClicks.length > 0) {
-      console.log('Click rejected: Rate limited', { ip, slug })
       // Still return referral_id for cookie, but don't increment
       return { 
         success: true, 
@@ -90,7 +87,7 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
     }
 
     // Insert click event into lead_events
-    const { error: eventError } = await supabase
+    await supabase
       .from('lead_events')
       .insert({
         lead_id: null, // No lead yet, just a click
@@ -99,13 +96,8 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
         after_snapshot: clickData
       })
 
-    if (eventError) {
-      console.error('Error inserting click event:', eventError)
-      // Continue anyway, still increment clicks
-    }
-
     // Increment click counter and update last_click_at
-    const { error: updateError } = await supabase
+    await supabase
       .from('referral_links')
       .update({
         click_count: referralLink.click_count + 1,
@@ -114,18 +106,13 @@ export async function trackReferralClick({ slug, searchParams }: TrackClickParam
       })
       .eq('id', referralLink.id)
 
-    if (updateError) {
-      console.error('Error updating click count:', updateError)
-    }
-
     return { 
       success: true, 
       referral_id: referralLink.id,
       tracked: true
     }
 
-  } catch (error) {
-    console.error('Error tracking referral click:', error)
+  } catch {
     return { success: false, reason: 'Server error' }
   }
 }
