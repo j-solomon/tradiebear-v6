@@ -39,7 +39,11 @@ export default async function AdminPage() {
       .from('leads')
       .select(`
         *,
-        service:services(name),
+        sub_service:sub_services!sub_service_id(
+          name,
+          description,
+          service:services(name)
+        ),
         referral_link:referral_links!referral_id(
           slug,
           profiles:user_id(name, handle)

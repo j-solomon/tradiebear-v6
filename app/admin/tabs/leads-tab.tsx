@@ -15,27 +15,32 @@ import { Eye, Search } from "lucide-react"
 
 interface Lead {
   id: string
-  name: string
-  email: string
-  phone: string
-  street: string
+  homeowner_first?: string
+  homeowner_last?: string
+  homeowner_email?: string
+  homeowner_phone?: string
+  address_street?: string
   city: string
   state: string
   zip: string
   stage: string
   created_at: string
-  service?: { name: string }
+  sub_service?: { 
+    name: string
+    description?: string
+    service?: { name: string }
+  }
   referral_link?: {
     slug: string
     profiles?: {
-      full_name: string
-      company_name: string
+      name: string
+      handle: string
     }
   }
-  budget?: number
+  budget_estimate?: number
   timeline?: string
   notes?: string
-  attachments?: string[]
+  extra_details?: any
 }
 
 interface LeadsTabProps {
@@ -178,14 +183,23 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                 ) : (
                   filteredLeads.map((lead) => (
                     <TableRow key={lead.id}>
-                      <TableCell className="font-medium">{lead.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {lead.homeowner_first} {lead.homeowner_last}
+                      </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <div>{lead.email}</div>
-                          <div className="text-muted-foreground">{lead.phone}</div>
+                          <div>{lead.homeowner_email}</div>
+                          <div className="text-muted-foreground">{lead.homeowner_phone}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{lead.service?.name || 'N/A'}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{lead.sub_service?.name || 'N/A'}</div>
+                          {lead.sub_service?.service?.name && (
+                            <div className="text-xs text-muted-foreground">{lead.sub_service.service.name}</div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {lead.city}, {lead.state}
                       </TableCell>
@@ -231,39 +245,46 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                             <DialogHeader>
                               <DialogTitle>Lead Details</DialogTitle>
                               <DialogDescription>
-                                Complete information for {lead.name}
+                                Complete information for {lead.homeowner_first} {lead.homeowner_last}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
                                   <Label>Name</Label>
-                                  <p className="text-sm">{lead.name}</p>
+                                  <p className="text-sm">{lead.homeowner_first} {lead.homeowner_last}</p>
                                 </div>
                                 <div>
                                   <Label>Email</Label>
-                                  <p className="text-sm">{lead.email}</p>
+                                  <p className="text-sm">{lead.homeowner_email}</p>
                                 </div>
                                 <div>
                                   <Label>Phone</Label>
-                                  <p className="text-sm">{lead.phone}</p>
+                                  <p className="text-sm">{lead.homeowner_phone}</p>
                                 </div>
                                 <div>
-                                  <Label>Service</Label>
-                                  <p className="text-sm">{lead.service?.name}</p>
+                                  <Label>Service Category</Label>
+                                  <p className="text-sm">{lead.sub_service?.service?.name || 'N/A'}</p>
+                                </div>
+                                <div className="col-span-2">
+                                  <Label>Specific Service</Label>
+                                  <p className="text-sm font-medium">{lead.sub_service?.name || 'N/A'}</p>
+                                  {lead.sub_service?.description && (
+                                    <p className="text-xs text-muted-foreground">{lead.sub_service.description}</p>
+                                  )}
                                 </div>
                               </div>
                               <div>
                                 <Label>Address</Label>
                                 <p className="text-sm">
-                                  {lead.street}<br />
+                                  {lead.address_street}<br />
                                   {lead.city}, {lead.state} {lead.zip}
                                 </p>
                               </div>
-                              {lead.budget && (
+                              {lead.budget_estimate && (
                                 <div>
                                   <Label>Budget</Label>
-                                  <p className="text-sm">${lead.budget.toLocaleString()}</p>
+                                  <p className="text-sm">${lead.budget_estimate.toLocaleString()}</p>
                                 </div>
                               )}
                               {lead.timeline && (
@@ -278,22 +299,22 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                                   <p className="text-sm whitespace-pre-wrap">{lead.notes}</p>
                                 </div>
                               )}
-                              {lead.attachments && lead.attachments.length > 0 && (
+                              {lead.extra_details?.attachments && lead.extra_details.attachments.length > 0 && (
                                 <div>
                                   <Label>Attachments</Label>
                                   <div className="grid grid-cols-2 gap-2 mt-2">
-                                    {lead.attachments.map((url, idx) => (
-                                      <a
+                                    {lead.extra_details.attachments.map((filename: string, idx: number) => (
+                                      <div
                                         key={idx}
-                                        href={url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-primary hover:underline"
+                                        className="text-sm text-muted-foreground"
                                       >
-                                        Image {idx + 1}
-                                      </a>
+                                        📎 {filename}
+                                      </div>
                                     ))}
                                   </div>
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    (Signed URLs for viewing images coming soon)
+                                  </p>
                                 </div>
                               )}
                             </div>

@@ -254,14 +254,19 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
                       <TableRow key={lead.id}>
                         <TableCell className="font-medium">
                           <div>
-                            <div>{lead.name}</div>
+                            <div>{lead.homeowner_first} {lead.homeowner_last}</div>
                             <div className="text-sm text-muted-foreground">
-                              {lead.email}
+                              {lead.homeowner_email}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {lead.service?.name || 'N/A'}
+                          <div>
+                            <div className="font-medium">{lead.sub_service?.name || 'N/A'}</div>
+                            {lead.sub_service?.service?.name && (
+                              <div className="text-xs text-muted-foreground">{lead.sub_service.service.name}</div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">

@@ -42,7 +42,11 @@ export default async function DashboardPage() {
       .from('leads')
       .select(`
         *,
-        service:services(name)
+        sub_service:sub_services!sub_service_id(
+          name,
+          description,
+          service:services(name)
+        )
       `)
       .eq('referral_id', referralLink.id)
       .order('created_at', { ascending: false })
