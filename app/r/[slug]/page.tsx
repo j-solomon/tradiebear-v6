@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import ReferralForm from './referral-form'
 import { trackReferralClick } from './actions'
 
@@ -20,11 +20,13 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
   console.log('Environment check:', {
     hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
     hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     supabaseUrlPrefix: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20)
   })
   
-  const supabase = await createClient()
-  console.log('Supabase client created')
+  // Use service role client to bypass RLS for public referral pages
+  const supabase = createServiceClient()
+  console.log('Supabase service client created (bypassing RLS)')
 
   // Fetch the referral link data
   console.log('Fetching referral link for slug:', params.slug)
