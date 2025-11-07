@@ -4,7 +4,21 @@
 -- Run this entire file in Supabase SQL Editor to set up the referral links feature
 
 -- ============================================================
--- 1. Slug Generator Function (Human-Friendly Version)
+-- 1. Helper Function for Cleaning Slug Parts
+-- ============================================================
+CREATE OR REPLACE FUNCTION clean_slug_part(input TEXT, max_len INT DEFAULT 15)
+RETURNS TEXT AS $$
+BEGIN
+  RETURN substring(
+    lower(regexp_replace(input, '[^a-zA-Z0-9-]', '', 'g')),
+    1, 
+    max_len
+  );
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- ============================================================
+-- 2. Slug Generator Function (Human-Friendly Version)
 -- ============================================================
 CREATE OR REPLACE FUNCTION gen_referral_slug(
   full_name TEXT, 
@@ -23,18 +37,6 @@ DECLARE
   candidates TEXT[] := ARRAY[]::TEXT[];
   suffix INT;
 BEGIN
-  -- Helper function to clean and truncate text
-  CREATE OR REPLACE FUNCTION clean_slug_part(input TEXT, max_len INT DEFAULT 15)
-  RETURNS TEXT AS $clean$
-  BEGIN
-    RETURN substring(
-      lower(regexp_replace(input, '[^a-zA-Z0-9-]', '', 'g')),
-      1, 
-      max_len
-    );
-  END;
-  $clean$ LANGUAGE plpgsql IMMUTABLE;
-
   -- Extract first and last name from full_name
   IF full_name IS NOT NULL AND full_name != '' THEN
     name_parts := string_to_array(trim(full_name), ' ');
@@ -127,7 +129,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================
--- 2. RLS Policies (Drop existing first, then recreate)
+-- 3. RLS Policies (Drop existing first, then recreate)
 -- ============================================================
 
 -- Drop existing policies if they exist
@@ -156,14 +158,14 @@ CREATE POLICY "admins_can_write_referral_links" ON referral_links
   );
 
 -- ============================================================
--- 3. Performance Indexes
+-- 4. Performance Indexes
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_referral_links_slug ON referral_links(slug);
 CREATE INDEX IF NOT EXISTS idx_referral_links_user_id ON referral_links(user_id);
 
 -- ============================================================
--- 4. Add columns for analytics and business tracking
+-- 5. Add columns for analytics and business tracking
 -- ============================================================
 
 ALTER TABLE referral_links
@@ -173,7 +175,7 @@ ALTER TABLE profiles
 ADD COLUMN IF NOT EXISTS business_name TEXT;
 
 -- ============================================================
--- 5. Auto-Generation Trigger on Profile Creation
+-- 6. Auto-Generation Trigger on Profile Creation
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION create_referral_link_on_signup()
