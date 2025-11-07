@@ -183,12 +183,28 @@ ADD COLUMN IF NOT EXISTS business_name TEXT;
 
 CREATE OR REPLACE FUNCTION create_referral_link_on_signup()
 RETURNS trigger AS $$
+DECLARE
+  new_slug TEXT;
 BEGIN
-  INSERT INTO referral_links (user_id, slug)
-  VALUES (
-    NEW.id, 
-    gen_referral_slug(NEW.name, NEW.business_name, NEW.email)
-  );
+  -- Skip if name is invalid (NULL or empty)
+  IF NEW.name IS NULL OR trim(NEW.name) = '' THEN
+    RAISE WARNING 'Skipping referral link creation: name is NULL or empty for user %', NEW.id;
+    RETURN NEW;
+  END IF;
+
+  -- Generate slug
+  BEGIN
+    new_slug := gen_referral_slug(NEW.name, NEW.business_name, NEW.email);
+    
+    -- Insert referral link
+    INSERT INTO referral_links (user_id, slug)
+    VALUES (NEW.id, new_slug);
+    
+  EXCEPTION WHEN OTHERS THEN
+    -- Log the error but don't fail the profile creation
+    RAISE WARNING 'Failed to create referral link for user %: %', NEW.id, SQLERRM;
+  END;
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
