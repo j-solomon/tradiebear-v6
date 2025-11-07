@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         .insert({
           user_id,
           slug: newSlug,
-          clicks: 0,
+          click_count: 0,
           is_active: true
         })
         .select(`

@@ -90,8 +90,11 @@ CREATE TABLE referral_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   slug TEXT UNIQUE NOT NULL,
+  click_count INT DEFAULT 0 NOT NULL,
+  last_click_at TIMESTAMPTZ DEFAULT NULL,
   is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Enable RLS

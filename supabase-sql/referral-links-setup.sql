@@ -169,6 +169,9 @@ CREATE INDEX IF NOT EXISTS idx_referral_links_user_id ON referral_links(user_id)
 -- ============================================================
 
 ALTER TABLE referral_links
+ADD COLUMN IF NOT EXISTS click_count INT DEFAULT 0 NOT NULL;
+
+ALTER TABLE referral_links
 ADD COLUMN IF NOT EXISTS last_click_at timestamptz DEFAULT NULL;
 
 ALTER TABLE profiles
