@@ -16,6 +16,11 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
   console.log('=== REFERRAL PAGE DEBUG ===')
   console.log('Slug:', params.slug)
   console.log('Search Params:', searchParams)
+  console.log('Environment check:', {
+    hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrlPrefix: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 20)
+  })
   
   const supabase = await createClient()
   console.log('Supabase client created')
