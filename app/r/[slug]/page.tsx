@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import ReferralForm from './referral-form'
 import { trackReferralClick } from './actions'
@@ -33,29 +32,17 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
     notFound()
   }
 
-  // Track click and set cookie
-  const trackResult = await trackReferralClick({
+  // Track click (cookie will be set client-side)
+  await trackReferralClick({
     slug: params.slug,
     searchParams
   })
-
-  if (trackResult.success && trackResult.referral_id) {
-    // Set first-party cookie for attribution (7 days, httpOnly)
-    const cookieStore = await cookies()
-    cookieStore.set('tb_ref', trackResult.referral_id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-      path: '/'
-    })
-  }
 
   // Fetch active services
   const { data: services } = await supabase
     .from('services')
     .select('*')
-    .eq('is_active', true)
+    .eq('active', true)
     .order('name')
 
   return (
