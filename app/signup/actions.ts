@@ -119,6 +119,34 @@ export async function signupPartner(data: SignupData) {
           error: 'Account created but profile setup failed. Please contact support.'
         }
       }
+
+      // Since UPDATE doesn't trigger AFTER INSERT, manually create referral link if missing
+      const { data: existingLink } = await supabaseAdmin
+        .from('referral_links')
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .single()
+
+      if (!existingLink) {
+        // Generate and insert referral link
+        const { data: slugData, error: slugError } = await supabaseAdmin
+          .rpc('gen_referral_slug', {
+            full_name: trimmedName,
+            business_name: trimmedBusinessName,
+            email: data.email.trim().toLowerCase()
+          })
+
+        if (!slugError && slugData) {
+          await supabaseAdmin
+            .from('referral_links')
+            .insert({
+              user_id: authData.user.id,
+              slug: slugData as string,
+              click_count: 0,
+              is_active: true
+            })
+        }
+      }
     } else {
       // Profile doesn't exist, insert it
       const { error: profileError } = await supabaseAdmin
