@@ -91,22 +91,53 @@ export async function signupPartner(data: SignupData) {
     const trimmedPhone = data.phone?.trim() || null
     
     const supabaseAdmin = createServiceClient()
-    const { error: profileError } = await supabaseAdmin
+    
+    // First check if profile already exists (from auth trigger)
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: authData.user.id,
-        email: data.email.trim().toLowerCase(),
-        name: trimmedName,
-        business_name: trimmedBusinessName,
-        handle: trimmedName.toLowerCase().replace(/\s+/g, '-'),
-        phone: trimmedPhone,
-        role: 'partner',
-      })
+      .select('id')
+      .eq('id', authData.user.id)
+      .single()
 
-    if (profileError) {
-      console.error('Profile creation error:', profileError)
-      return {
-        error: 'Account created but profile setup failed. Please contact support.'
+    if (existingProfile) {
+      // Profile already exists (created by trigger), just update it
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          email: data.email.trim().toLowerCase(),
+          name: trimmedName,
+          business_name: trimmedBusinessName,
+          handle: trimmedName.toLowerCase().replace(/\s+/g, '-'),
+          phone: trimmedPhone,
+          role: 'partner',
+        })
+        .eq('id', authData.user.id)
+
+      if (updateError) {
+        console.error('Profile update error:', updateError)
+        return {
+          error: 'Account created but profile setup failed. Please contact support.'
+        }
+      }
+    } else {
+      // Profile doesn't exist, insert it
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: data.email.trim().toLowerCase(),
+          name: trimmedName,
+          business_name: trimmedBusinessName,
+          handle: trimmedName.toLowerCase().replace(/\s+/g, '-'),
+          phone: trimmedPhone,
+          role: 'partner',
+        })
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        return {
+          error: 'Account created but profile setup failed. Please contact support.'
+        }
       }
     }
 
