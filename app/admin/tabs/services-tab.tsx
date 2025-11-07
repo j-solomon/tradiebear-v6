@@ -158,10 +158,14 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
       })
     } else {
       // Create new service
+      // Generate slug from name (lowercase, replace spaces with hyphens)
+      const slug = serviceForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      
       const { error } = await supabase
         .from('services')
         .insert({
           name: serviceForm.name,
+          slug: slug,
           description: serviceForm.description || null,
           active: true,
         })
