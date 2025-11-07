@@ -136,10 +136,11 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
         .eq('id', editingService.id)
 
       if (error) {
+        console.error('Supabase error updating service:', error)
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to update service.",
+          description: error.message || "Failed to update service.",
         })
         setLoading(false)
         return
@@ -157,27 +158,34 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
       })
     } else {
       // Create new service
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('services')
         .insert({
           name: serviceForm.name,
           description: serviceForm.description || null,
           active: true,
         })
-        .select()
-        .single()
 
       if (error) {
+        console.error('Supabase error creating service:', error)
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to create service.",
+          description: error.message || "Failed to create service.",
         })
         setLoading(false)
         return
       }
 
-      setServices([...services, data])
+      // Refresh the services list from the server
+      const { data: refreshedServices } = await supabase
+        .from('services')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      if (refreshedServices) {
+        setServices(refreshedServices)
+      }
 
       toast({
         title: "Success",
@@ -209,10 +217,11 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
         .eq('id', editingSubService.id)
 
       if (error) {
+        console.error('Supabase error updating sub-service:', error)
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to update sub-service.",
+          description: error.message || "Failed to update sub-service.",
         })
         setLoading(false)
         return
@@ -238,10 +247,11 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
         })
 
       if (error) {
+        console.error('Supabase error creating sub-service:', error)
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to create sub-service.",
+          description: error.message || "Failed to create sub-service.",
         })
         setLoading(false)
         return
