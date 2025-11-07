@@ -13,6 +13,25 @@ interface SignupData {
 
 export async function signupPartner(data: SignupData) {
   try {
+    // Validate required fields are not empty
+    if (!data.name || data.name.trim().length === 0) {
+      return {
+        error: 'Full name is required'
+      }
+    }
+
+    if (!data.email || data.email.trim().length === 0) {
+      return {
+        error: 'Email is required'
+      }
+    }
+
+    if (!data.password || data.password.length === 0) {
+      return {
+        error: 'Password is required'
+      }
+    }
+
     const supabase = await createClient()
 
     // Validate password strength
@@ -66,16 +85,21 @@ export async function signupPartner(data: SignupData) {
 
     // Insert profile with role='partner' using service role to bypass RLS
     // Note: The user won't be able to login until they verify their email
+    // Trim all string fields to prevent whitespace-only values
+    const trimmedName = data.name.trim()
+    const trimmedBusinessName = data.business_name?.trim() || null
+    const trimmedPhone = data.phone?.trim() || null
+    
     const supabaseAdmin = createServiceClient()
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
         id: authData.user.id,
-        email: data.email,
-        name: data.name,
-        business_name: data.business_name || null,
-        handle: data.name.toLowerCase().replace(/\s+/g, '-'),
-        phone: data.phone || null,
+        email: data.email.trim().toLowerCase(),
+        name: trimmedName,
+        business_name: trimmedBusinessName,
+        handle: trimmedName.toLowerCase().replace(/\s+/g, '-'),
+        phone: trimmedPhone,
         role: 'partner',
       })
 
