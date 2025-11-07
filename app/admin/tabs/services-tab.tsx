@@ -509,7 +509,7 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
                         </Table>
                       ) : (
                         <p className="text-sm text-muted-foreground text-center py-4">
-                          No sub-services yet. Click "Add Sub-Service" to create one.
+                          No sub-services yet. Click &quot;Add Sub-Service&quot; to create one.
                         </p>
                       )}
                     </div>
