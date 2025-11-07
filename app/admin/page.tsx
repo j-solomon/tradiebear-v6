@@ -54,7 +54,7 @@ export default async function AdminPage() {
     supabase
       .from('services')
       .select('*')
-      .order('sort_order', { ascending: true }),
+      .order('name', { ascending: true }),
     supabase
       .from('service_area_map')
       .select('*')
