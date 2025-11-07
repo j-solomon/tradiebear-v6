@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
@@ -20,8 +20,14 @@ interface PartnerDashboardProps {
 
 export default function PartnerDashboard({ profile, referralLink, initialLeads }: PartnerDashboardProps) {
   const [leads] = useState(initialLeads)
+  const [origin, setOrigin] = useState<string>('')
   const router = useRouter()
   const { toast } = useToast()
+
+  // Set origin only on client-side to avoid "window is not defined" error
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -31,9 +37,9 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
   }
 
   const copyReferralLink = () => {
-    if (!referralLink) return
+    if (!referralLink || !origin) return
     
-    const url = `${window.location.origin}/r/${referralLink.slug}`
+    const url = `${origin}/r/${referralLink.slug}`
     navigator.clipboard.writeText(url)
     toast({
       title: "Copied!",
@@ -112,12 +118,13 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
             <CardContent className="space-y-4">
               <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
                 <code className="flex-1 text-sm font-mono">
-                  {window.location.origin}/r/{referralLink.slug}
+                  {origin ? `${origin}/r/${referralLink.slug}` : 'Loading...'}
                 </code>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={copyReferralLink}
+                  disabled={!origin}
                 >
                   <Copy className="h-4 w-4 mr-2" />
                   Copy
@@ -125,7 +132,8 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(`/r/${referralLink.slug}`, '_blank')}
+                  onClick={() => origin && window.open(`/r/${referralLink.slug}`, '_blank')}
+                  disabled={!origin}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Open
