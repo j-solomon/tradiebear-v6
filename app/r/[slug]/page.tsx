@@ -4,6 +4,7 @@ import ReferralForm from './referral-form'
 import { trackReferralClick } from './actions'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 interface PageProps {
   params: {
