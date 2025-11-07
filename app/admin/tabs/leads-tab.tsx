@@ -224,8 +224,8 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                         </Select>
                       </TableCell>
                       <TableCell>
-                        {lead.referral_link?.profiles?.company_name || 
-                         lead.referral_link?.profiles?.full_name || 
+                        {lead.referral_link?.profiles?.name || 
+                         lead.referral_link?.profiles?.handle || 
                          'Direct'}
                       </TableCell>
                       <TableCell>
