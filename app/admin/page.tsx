@@ -65,6 +65,8 @@ export default async function AdminPage() {
         sub_service:sub_services!sub_service_id(
           id,
           name,
+          slug,
+          description,
           service:services(name)
         ),
         state:geo_states!state_code(
@@ -78,13 +80,10 @@ export default async function AdminPage() {
         city:geo_cities!city_id(
           id,
           name
-        ),
-        zip:geo_zips!zip_code(
-          code
         )
       `)
-      .order('state_code', { ascending: true })
-      .limit(500),
+      .order('sub_service_id', { ascending: true })
+      .order('zip_code', { ascending: true }),
     supabase
       .from('commission_tiers')
       .select('*')
