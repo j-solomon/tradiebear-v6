@@ -366,9 +366,22 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       toast({ variant: "destructive", title: "Service required", description: "Please select a service category." })
       return false
     }
-    // Only require sub-service if available
-    if (availableSubServices.length > 0 && !formData.sub_service_id) {
-      toast({ variant: "destructive", title: "Specific service required", description: "Please select a specific service." })
+    
+    // Always require sub-service selection
+    if (!formData.sub_service_id) {
+      if (availableSubServices.length === 0) {
+        toast({ 
+          variant: "destructive", 
+          title: "No services available", 
+          description: "This service category has no specific services. Please contact support or choose another category." 
+        })
+      } else {
+        toast({ 
+          variant: "destructive", 
+          title: "Specific service required", 
+          description: "Please select a specific service." 
+        })
+      }
       return false
     }
     return true
@@ -434,6 +447,16 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         variant: "destructive",
         title: "Terms required",
         description: "You must accept the terms and conditions.",
+      })
+      return
+    }
+
+    // Final validation check - ensure sub-service is selected
+    if (!formData.sub_service_id) {
+      toast({
+        variant: "destructive",
+        title: "Incomplete information",
+        description: "Please go back and select a specific service.",
       })
       return
     }
