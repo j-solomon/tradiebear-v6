@@ -1,6 +1,7 @@
 declare global {
   interface Window {
     google: typeof google
+    initMap?: () => void
   }
 }
 
@@ -24,8 +25,17 @@ declare namespace google {
             types: string[]
           }>
           formatted_address?: string
+          geometry?: {
+            location: {
+              lat(): number
+              lng(): number
+            }
+          }
         }
       }
+    }
+    namespace event {
+      function clearInstanceListeners(instance: any): void
     }
   }
 }

@@ -72,87 +72,171 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   useEffect(() => {
     if (!addressInputRef.current) return
 
+    let autocompleteInstance: google.maps.places.Autocomplete | null = null
+
     const loadGoogleMaps = () => {
+      // Check if API key exists
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      
+      if (!apiKey) {
+        console.error('Google Maps API key is missing')
+        toast({
+          variant: "destructive",
+          title: "Configuration Error",
+          description: "Google Maps API key is not configured. Address autocomplete is unavailable.",
+        })
+        return
+      }
+
       // Check if Google Maps is already loaded
       if (window.google?.maps?.places) {
+        console.log('Google Maps already loaded, initializing autocomplete...')
         initAutocomplete()
         return
       }
 
+      // Check if script is already being loaded
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
+      if (existingScript) {
+        console.log('Google Maps script already loading, waiting...')
+        existingScript.addEventListener('load', () => initAutocomplete())
+        return
+      }
+
+      console.log('Loading Google Maps API...')
+
       // Load Google Maps script
       const script = document.createElement('script')
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`
       script.async = true
       script.defer = true
       
-      script.onload = () => {
+      // Add callback function to window
+      window.initMap = () => {
+        console.log('Google Maps loaded successfully')
         initAutocomplete()
       }
       
-      script.onerror = () => {
-        console.error('Failed to load Google Maps API')
+      script.onerror = (error) => {
+        console.error('Failed to load Google Maps API:', error)
+        toast({
+          variant: "destructive",
+          title: "Maps Load Error",
+          description: "Unable to load Google Maps. Address autocomplete is unavailable. You can still enter your address manually.",
+        })
       }
       
       document.head.appendChild(script)
     }
 
     const initAutocomplete = () => {
-      if (!addressInputRef.current || !window.google?.maps?.places) return
+      if (!addressInputRef.current) {
+        console.error('Address input ref not available')
+        return
+      }
 
-      const autocomplete = new google.maps.places.Autocomplete(
-        addressInputRef.current,
-        {
-          types: ['address'],
-          componentRestrictions: { country: 'us' },
-          fields: ['address_components', 'formatted_address']
-        }
-      )
+      if (!window.google?.maps?.places) {
+        console.error('Google Maps Places API not available')
+        toast({
+          variant: "destructive",
+          title: "Autocomplete Error",
+          description: "Address autocomplete is unavailable. Please enter your address manually.",
+        })
+        return
+      }
 
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace()
+      try {
+        console.log('Initializing Google Places Autocomplete...')
         
-        if (!place.address_components) return
+        autocompleteInstance = new google.maps.places.Autocomplete(
+          addressInputRef.current,
+          {
+            types: ['address'],
+            componentRestrictions: { country: 'us' },
+            fields: ['address_components', 'formatted_address', 'geometry']
+          }
+        )
 
-        // Extract address components
-        let streetNumber = ''
-        let route = ''
-        let city = ''
-        let state = ''
-        let zip = ''
-
-        place.address_components.forEach((component) => {
-          const types = component.types
+        autocompleteInstance.addListener('place_changed', () => {
+          const place = autocompleteInstance?.getPlace()
           
-          if (types.includes('street_number')) {
-            streetNumber = component.long_name
+          console.log('Place selected:', place)
+
+          if (!place?.address_components) {
+            console.warn('No address components in selected place')
+            toast({
+              variant: "destructive",
+              title: "Invalid Selection",
+              description: "Please select a valid address from the dropdown.",
+            })
+            return
           }
-          if (types.includes('route')) {
-            route = component.long_name
-          }
-          if (types.includes('locality')) {
-            city = component.long_name
-          }
-          if (types.includes('administrative_area_level_1')) {
-            state = component.short_name
-          }
-          if (types.includes('postal_code')) {
-            zip = component.long_name
-          }
+
+          // Extract address components
+          let streetNumber = ''
+          let route = ''
+          let city = ''
+          let state = ''
+          let zip = ''
+
+          place.address_components.forEach((component) => {
+            const types = component.types
+            
+            if (types.includes('street_number')) {
+              streetNumber = component.long_name
+            }
+            if (types.includes('route')) {
+              route = component.long_name
+            }
+            if (types.includes('locality')) {
+              city = component.long_name
+            }
+            if (types.includes('administrative_area_level_1')) {
+              state = component.short_name
+            }
+            if (types.includes('postal_code')) {
+              zip = component.long_name
+            }
+          })
+
+          console.log('Extracted address:', { streetNumber, route, city, state, zip })
+
+          // Update form data with extracted address components
+          setFormData(prev => ({
+            ...prev,
+            address: `${streetNumber} ${route}`.trim(),
+            city: city,
+            state: state,
+            zip: zip
+          }))
+
+          // Show success toast
+          toast({
+            title: "Address Added",
+            description: `${city}, ${state} ${zip}`,
+          })
         })
 
-        // Update form data with extracted address components
-        setFormData(prev => ({
-          ...prev,
-          address: `${streetNumber} ${route}`.trim(),
-          city: city,
-          state: state,
-          zip: zip
-        }))
-      })
+        console.log('Autocomplete initialized successfully')
+      } catch (error) {
+        console.error('Error initializing autocomplete:', error)
+        toast({
+          variant: "destructive",
+          title: "Initialization Error",
+          description: "Could not initialize address autocomplete. Please enter your address manually.",
+        })
+      }
     }
 
     loadGoogleMaps()
-  }, [])
+
+    // Cleanup
+    return () => {
+      if (autocompleteInstance) {
+        google.maps.event.clearInstanceListeners(autocompleteInstance)
+      }
+    }
+  }, [toast])
 
   // Filter sub-services based on selected service
   const availableSubServices = formData.service_id
