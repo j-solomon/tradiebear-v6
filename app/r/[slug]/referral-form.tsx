@@ -258,146 +258,152 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <CardTitle>
+    <Card className="border-0 sm:border">
+      <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+        <div className="flex items-start sm:items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg sm:text-xl md:text-2xl leading-tight">
               {currentStep === 1 && "Contact Information"}
               {currentStep === 2 && "Project Details"}
               {currentStep === 3 && "Review & Submit"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm sm:text-base mt-1">
               Step {currentStep} of 3
             </CardDescription>
           </div>
           
-          {/* Dark Mode Toggle */}
+          {/* Dark Mode Toggle - Larger on mobile */}
           <Button
             type="button"
             variant="outline"
             size="icon"
             onClick={() => setDarkMode(!darkMode)}
-            className="ml-4"
+            className="h-10 w-10 sm:h-9 sm:w-9 flex-shrink-0"
             title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
             {darkMode ? (
-              <Sun className="h-5 w-5" />
+              <Sun className="h-5 w-5 sm:h-4 sm:w-4" />
             ) : (
-              <Moon className="h-5 w-5" />
+              <Moon className="h-5 w-5 sm:h-4 sm:w-4" />
             )}
           </Button>
         </div>
         
-        {/* Progress Bar */}
+        {/* Progress Bar - Thicker on mobile */}
         <div className="flex gap-2 mt-4">
-          <div className={`h-2 flex-1 rounded ${currentStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`h-2 flex-1 rounded ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`h-2 flex-1 rounded ${currentStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`h-2.5 sm:h-2 flex-1 rounded-full ${currentStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`h-2.5 sm:h-2 flex-1 rounded-full ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`h-2.5 sm:h-2 flex-1 rounded-full ${currentStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
         </div>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <CardContent className="px-4 sm:px-6 py-4 sm:py-6">
+        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
           
           {/* Step 1: Contact Information */}
           {currentStep === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-5 sm:space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="name" className="text-sm sm:text-base">Full Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="John Smith"
+                    className="h-11 sm:h-10 text-base"
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="john@example.com"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email_confirm">Confirm Email *</Label>
-                    <Input
-                      id="email_confirm"
-                      type="email"
-                      value={formData.email_confirm}
-                      onChange={(e) => setFormData({ ...formData, email_confirm: e.target.value })}
-                      placeholder="john@example.com"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm sm:text-base">Email Address *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="john@example.com"
+                    className="h-11 sm:h-10 text-base"
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Label htmlFor="email_confirm" className="text-sm sm:text-base">Confirm Email *</Label>
+                  <Input
+                    id="email_confirm"
+                    type="email"
+                    value={formData.email_confirm}
+                    onChange={(e) => setFormData({ ...formData, email_confirm: e.target.value })}
+                    placeholder="john@example.com"
+                    className="h-11 sm:h-10 text-base"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number *</Label>
                   <Input
                     id="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="(503) 555-0123"
+                    className="h-11 sm:h-10 text-base"
                   />
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="font-semibold">Property Address</h3>
+                <h3 className="font-semibold text-base sm:text-lg">Property Address</h3>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="street">Street Address *</Label>
+                  <Label htmlFor="street" className="text-sm sm:text-base">Street Address *</Label>
                   <Input
                     id="street"
                     value={formData.street}
                     onChange={(e) => setFormData({ ...formData, street: e.target.value })}
                     placeholder="123 Main St"
+                    className="h-11 sm:h-10 text-base"
                   />
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="Portland"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-sm sm:text-base">City *</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    placeholder="Portland"
+                    className="h-11 sm:h-10 text-base"
+                  />
+                </div>
 
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="state">State *</Label>
+                    <Label htmlFor="state" className="text-sm sm:text-base">State *</Label>
                     <Input
                       id="state"
                       maxLength={2}
                       placeholder="OR"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                      className="h-11 sm:h-10 text-base"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="zip">ZIP Code *</Label>
+                    <Label htmlFor="zip" className="text-sm sm:text-base">ZIP Code *</Label>
                     <Input
                       id="zip"
                       maxLength={5}
                       value={formData.zip}
                       onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
                       placeholder="97201"
+                      className="h-11 sm:h-10 text-base"
                     />
                   </div>
                 </div>
               </div>
 
-              <Button type="button" onClick={handleNext} className="w-full" size="lg">
+              <Button type="button" onClick={handleNext} className="w-full h-12 sm:h-11 text-base" size="lg">
                 Next: Project Details
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
@@ -406,20 +412,20 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
           {/* Step 2: Project Details */}
           {currentStep === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-5 sm:space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="service">Service Category *</Label>
+                  <Label htmlFor="service" className="text-sm sm:text-base">Service Category *</Label>
                   <Select
                     value={formData.service_id}
                     onValueChange={(value) => setFormData({ ...formData, service_id: value, sub_service_id: "" })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11 sm:h-10">
                       <SelectValue placeholder="Select a service category" />
                     </SelectTrigger>
                     <SelectContent>
                       {services.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
+                        <SelectItem key={service.id} value={service.id} className="py-3 sm:py-2">
                           {service.name}
                         </SelectItem>
                       ))}
@@ -429,17 +435,17 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
                 {formData.service_id && availableSubServices.length > 0 && (
                   <div className="space-y-2">
-                    <Label htmlFor="sub_service">Specific Service *</Label>
+                    <Label htmlFor="sub_service" className="text-sm sm:text-base">Specific Service *</Label>
                     <Select
                       value={formData.sub_service_id}
                       onValueChange={(value) => setFormData({ ...formData, sub_service_id: value })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11 sm:h-10">
                         <SelectValue placeholder="Select specific service" />
                       </SelectTrigger>
                       <SelectContent>
                         {availableSubServices.map((subService) => (
-                          <SelectItem key={subService.id} value={subService.id}>
+                          <SelectItem key={subService.id} value={subService.id} className="py-3 sm:py-2">
                             <div className="flex flex-col">
                               <span className="font-medium">{subService.description || subService.name}</span>
                               {subService.description && (
@@ -453,51 +459,52 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                   </div>
                 )}
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="budget">Budget (Optional)</Label>
-                    <Input
-                      id="budget"
-                      type="number"
-                      placeholder="5000"
-                      value={formData.budget}
-                      onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="timeline">Timeline *</Label>
-                    <Input
-                      id="timeline"
-                      placeholder="e.g., Within 2 weeks"
-                      value={formData.timeline}
-                      onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="budget" className="text-sm sm:text-base">Budget (Optional)</Label>
+                  <Input
+                    id="budget"
+                    type="number"
+                    placeholder="5000"
+                    value={formData.budget}
+                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                    className="h-11 sm:h-10 text-base"
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Additional Notes</Label>
+                  <Label htmlFor="timeline" className="text-sm sm:text-base">Timeline *</Label>
+                  <Input
+                    id="timeline"
+                    placeholder="e.g., Within 2 weeks"
+                    value={formData.timeline}
+                    onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
+                    className="h-11 sm:h-10 text-base"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm sm:text-base">Additional Notes</Label>
                   <Textarea
                     id="notes"
                     rows={4}
                     placeholder="Tell us more about your project..."
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="text-base min-h-[100px]"
                   />
                 </div>
               </div>
 
               {/* File Upload */}
               <div className="space-y-4">
-                <h3 className="font-semibold">Photos (Optional)</h3>
+                <h3 className="font-semibold text-base sm:text-lg">Photos (Optional)</h3>
                 <p className="text-sm text-muted-foreground">
                   Upload up to 10 images (JPG, PNG, HEIC). Max 20 MB each.
                 </p>
                 
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <Label htmlFor="files" className="cursor-pointer">
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 sm:p-6 py-8 text-center touch-manipulation">
+                  <Upload className="w-10 h-10 sm:w-8 sm:h-8 mx-auto mb-3 sm:mb-2 text-muted-foreground" />
+                  <Label htmlFor="files" className="cursor-pointer text-sm sm:text-base">
                     <span className="text-primary hover:underline">Click to upload</span> or drag and drop
                   </Label>
                   <Input
@@ -513,13 +520,14 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 {files.length > 0 && (
                   <div className="space-y-2">
                     {files.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                        <span className="text-sm truncate">{file.name}</span>
+                      <div key={index} className="flex items-center justify-between p-3 sm:p-2 bg-muted rounded">
+                        <span className="text-sm truncate flex-1">{file.name}</span>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFile(index)}
+                          className="ml-2 h-9 sm:h-8"
                         >
                           Remove
                         </Button>
@@ -529,12 +537,12 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 )}
               </div>
 
-              <div className="flex gap-4">
-                <Button type="button" onClick={handleBack} variant="outline" className="flex-1" size="lg">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <Button type="button" onClick={handleBack} variant="outline" className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg">
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button type="button" onClick={handleNext} className="flex-1" size="lg">
+                <Button type="button" onClick={handleNext} className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg">
                   Review
                   <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -544,11 +552,11 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
           {/* Step 3: Review & Submit */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="bg-muted p-4 rounded-lg space-y-3">
-                  <h3 className="font-semibold">Contact Information</h3>
-                  <div className="text-sm space-y-1">
+            <div className="space-y-5 sm:space-y-6">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="bg-muted p-4 sm:p-4 rounded-lg space-y-3">
+                  <h3 className="font-semibold text-base sm:text-lg">Contact Information</h3>
+                  <div className="text-sm sm:text-base space-y-1.5 sm:space-y-1">
                     <p><strong>Name:</strong> {formData.name}</p>
                     <p><strong>Email:</strong> {formData.email}</p>
                     <p><strong>Phone:</strong> {formData.phone}</p>
@@ -556,9 +564,9 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                   </div>
                 </div>
 
-                <div className="bg-muted p-4 rounded-lg space-y-3">
-                  <h3 className="font-semibold">Project Details</h3>
-                  <div className="text-sm space-y-1">
+                <div className="bg-muted p-4 sm:p-4 rounded-lg space-y-3">
+                  <h3 className="font-semibold text-base sm:text-lg">Project Details</h3>
+                  <div className="text-sm sm:text-base space-y-1.5 sm:space-y-1">
                     <p><strong>Service:</strong> {selectedService?.name}</p>
                     {selectedSubService && (
                       <p><strong>Specific Service:</strong> {selectedSubService.description || selectedSubService.name}</p>
@@ -572,49 +580,52 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
               </div>
 
               <div className="space-y-4">
-                <h3 className="font-semibold">Communication Preferences</h3>
+                <h3 className="font-semibold text-base sm:text-lg">Communication Preferences</h3>
                 
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
+                <div className="space-y-3.5 sm:space-y-3">
+                  <div className="flex items-start space-x-3 sm:space-x-2">
                     <Checkbox
                       id="consent_email"
                       checked={formData.consent_email}
                       onCheckedChange={(checked) => 
                         setFormData({ ...formData, consent_email: checked as boolean })
                       }
+                      className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
                     />
-                    <Label htmlFor="consent_email" className="text-sm font-normal">
+                    <Label htmlFor="consent_email" className="text-sm sm:text-base font-normal leading-tight cursor-pointer">
                       I agree to receive emails about my project
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-start space-x-3 sm:space-x-2">
                     <Checkbox
                       id="consent_sms"
                       checked={formData.consent_sms}
                       onCheckedChange={(checked) => 
                         setFormData({ ...formData, consent_sms: checked as boolean })
                       }
+                      className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
                     />
-                    <Label htmlFor="consent_sms" className="text-sm font-normal">
+                    <Label htmlFor="consent_sms" className="text-sm sm:text-base font-normal leading-tight cursor-pointer">
                       I agree to receive SMS updates about my project
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-start space-x-3 sm:space-x-2">
                     <Checkbox
                       id="consent_call"
                       checked={formData.consent_call}
                       onCheckedChange={(checked) => 
                         setFormData({ ...formData, consent_call: checked as boolean })
                       }
+                      className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
                     />
-                    <Label htmlFor="consent_call" className="text-sm font-normal">
+                    <Label htmlFor="consent_call" className="text-sm sm:text-base font-normal leading-tight cursor-pointer">
                       I agree to receive phone calls about my project
                     </Label>
                   </div>
 
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-start space-x-3 sm:space-x-2 pt-2">
                     <Checkbox
                       id="consent_terms"
                       checked={formData.consent_terms}
@@ -622,20 +633,21 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                         setFormData({ ...formData, consent_terms: checked as boolean })
                       }
                       required
+                      className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
                     />
-                    <Label htmlFor="consent_terms" className="text-sm font-normal">
+                    <Label htmlFor="consent_terms" className="text-sm sm:text-base font-normal leading-tight cursor-pointer">
                       I agree to the Terms and Conditions and Privacy Policy *
                     </Label>
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-4">
-                <Button type="button" onClick={handleBack} variant="outline" className="flex-1" size="lg">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
+                <Button type="button" onClick={handleBack} variant="outline" className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg">
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button type="submit" className="flex-1" size="lg" disabled={loading}>
+                <Button type="submit" className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg" disabled={loading}>
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
