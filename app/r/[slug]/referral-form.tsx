@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { Upload, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Upload, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Moon, Sun } from "lucide-react"
 
 interface Service {
   id: string
@@ -36,7 +36,17 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const [darkMode, setDarkMode] = useState(false)
   const { toast } = useToast()
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [darkMode])
 
   const [formData, setFormData] = useState({
     name: "",
@@ -250,14 +260,34 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          {currentStep === 1 && "Contact Information"}
-          {currentStep === 2 && "Project Details"}
-          {currentStep === 3 && "Review & Submit"}
-        </CardTitle>
-        <CardDescription>
-          Step {currentStep} of 3
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <CardTitle>
+              {currentStep === 1 && "Contact Information"}
+              {currentStep === 2 && "Project Details"}
+              {currentStep === 3 && "Review & Submit"}
+            </CardTitle>
+            <CardDescription>
+              Step {currentStep} of 3
+            </CardDescription>
+          </div>
+          
+          {/* Dark Mode Toggle */}
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setDarkMode(!darkMode)}
+            className="ml-4"
+            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {darkMode ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
         
         {/* Progress Bar */}
         <div className="flex gap-2 mt-4">
