@@ -5,19 +5,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
-import { Plus, Trash2 } from "lucide-react"
+import { Trash2, Search } from "lucide-react"
 
 interface ServiceArea {
   id: string
-  state?: string
-  county?: string
-  city?: string
-  zip?: string
+  state_code: string
+  zip_code: string
   created_at: string
+  sub_service?: {
+    id: string
+    name: string
+    service?: {
+      name: string
+    }
+  }
+  state?: {
+    code: string
+    name: string
+  }
+  county?: {
+    id: string
+    name: string
+  }
+  city?: {
+    id: string
+    name: string
+  }
+  zip?: {
+    code: string
+  }
 }
 
 interface AreasTabProps {
@@ -26,70 +45,22 @@ interface AreasTabProps {
 
 export default function AreasTab({ initialAreas }: AreasTabProps) {
   const [areas, setAreas] = useState<ServiceArea[]>(initialAreas)
-  const [open, setOpen] = useState(false)
-  const [newArea, setNewArea] = useState({
-    state: "",
-    county: "",
-    city: "",
-    zip: "",
-  })
-  const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
 
-  const handleAddArea = async () => {
-    if (!newArea.state && !newArea.zip) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please provide at least a state or ZIP code.",
-      })
-      return
-    }
-
-    setLoading(true)
-    const supabase = createClient()
-
-    const { data, error } = await supabase
-      .from('service_areas')
-      .insert({
-        state: newArea.state || null,
-        county: newArea.county || null,
-        city: newArea.city || null,
-        zip: newArea.zip || null,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to add service area.",
-      })
-      setLoading(false)
-      return
-    }
-
-    setAreas([data, ...areas])
-    setNewArea({ state: "", county: "", city: "", zip: "" })
-    setOpen(false)
-    setLoading(false)
-
-    toast({
-      title: "Success",
-      description: "Service area added successfully.",
-    })
-  }
-
   const handleDeleteArea = async (areaId: string) => {
+    const confirmed = confirm("Are you sure you want to delete this service area?")
+    if (!confirmed) return
+
     const supabase = createClient()
 
     const { error } = await supabase
-      .from('service_areas')
+      .from('service_area_map')
       .delete()
       .eq('id', areaId)
 
     if (error) {
+      console.error('Delete error:', error)
       toast({
         variant: "destructive",
         title: "Error",
@@ -106,6 +77,27 @@ export default function AreasTab({ initialAreas }: AreasTabProps) {
     })
   }
 
+  // Filter areas based on search
+  const filteredAreas = areas.filter((area) => {
+    const searchLower = searchTerm.toLowerCase()
+    return (
+      area.state?.name?.toLowerCase().includes(searchLower) ||
+      area.state_code?.toLowerCase().includes(searchLower) ||
+      area.county?.name?.toLowerCase().includes(searchLower) ||
+      area.city?.name?.toLowerCase().includes(searchLower) ||
+      area.zip_code?.includes(searchTerm) ||
+      area.sub_service?.name?.toLowerCase().includes(searchLower) ||
+      area.sub_service?.service?.name?.toLowerCase().includes(searchLower)
+    )
+  })
+
+  // Group areas by state for summary
+  const stateSummary = areas.reduce((acc, area) => {
+    const stateName = area.state?.name || area.state_code
+    acc[stateName] = (acc[stateName] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
   return (
     <Card>
       <CardHeader>
@@ -113,89 +105,45 @@ export default function AreasTab({ initialAreas }: AreasTabProps) {
           <div>
             <CardTitle>Service Areas</CardTitle>
             <CardDescription>
-              Define geographic areas where services are available
+              Geographic coverage for all services ({areas.length} total areas)
             </CardDescription>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Area
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Service Area</DialogTitle>
-                <DialogDescription>
-                  Add a new geographic service area. Fill in as many fields as needed for specificity.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    placeholder="CA"
-                    maxLength={2}
-                    value={newArea.state}
-                    onChange={(e) => setNewArea({ ...newArea, state: e.target.value.toUpperCase() })}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="county">County</Label>
-                  <Input
-                    id="county"
-                    placeholder="Los Angeles"
-                    value={newArea.county}
-                    onChange={(e) => setNewArea({ ...newArea, county: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="San Francisco"
-                    value={newArea.city}
-                    onChange={(e) => setNewArea({ ...newArea, city: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="zip">ZIP Code</Label>
-                  <Input
-                    id="zip"
-                    placeholder="94102"
-                    maxLength={5}
-                    value={newArea.zip}
-                    onChange={(e) => setNewArea({ ...newArea, zip: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddArea} disabled={loading}>
-                  {loading ? "Adding..." : "Add Area"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+        </div>
+        
+        {/* Summary badges */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          {Object.entries(stateSummary).map(([state, count]) => (
+            <Badge key={state} variant="secondary">
+              {state}: {count} areas
+            </Badge>
+          ))}
         </div>
       </CardHeader>
       <CardContent>
-        {areas.length === 0 ? (
+        {/* Search */}
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by state, county, city, ZIP, or service..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        {filteredAreas.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No service areas defined yet. Add your first area above.
+            {searchTerm ? "No service areas match your search." : "No service areas defined yet."}
           </div>
         ) : (
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Sub-Service</TableHead>
+                  <TableHead>Service Category</TableHead>
                   <TableHead>State</TableHead>
                   <TableHead>County</TableHead>
                   <TableHead>City</TableHead>
@@ -205,13 +153,26 @@ export default function AreasTab({ initialAreas }: AreasTabProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {areas.map((area) => (
+                {filteredAreas.slice(0, 100).map((area) => (
                   <TableRow key={area.id}>
-                    <TableCell>{area.state || <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell>{area.county || <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell>{area.city || <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell>{area.zip || <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell>{new Date(area.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="font-medium">
+                      {area.sub_service?.name || <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      {area.sub_service?.service?.name || <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{area.state?.name || area.state_code}</div>
+                        <div className="text-xs text-muted-foreground">{area.state_code}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{area.county?.name || <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>{area.city?.name || <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="font-mono">{area.zip_code}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(area.created_at).toLocaleDateString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -225,10 +186,14 @@ export default function AreasTab({ initialAreas }: AreasTabProps) {
                 ))}
               </TableBody>
             </Table>
+            {filteredAreas.length > 100 && (
+              <div className="p-4 text-center text-sm text-muted-foreground border-t">
+                Showing first 100 of {filteredAreas.length} results. Use search to narrow down.
+              </div>
+            )}
           </div>
         )}
       </CardContent>
     </Card>
   )
 }
-

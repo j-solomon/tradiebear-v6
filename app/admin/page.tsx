@@ -57,8 +57,34 @@ export default async function AdminPage() {
       .order('name', { ascending: true }),
     supabase
       .from('service_area_map')
-      .select('*')
-      .order('state_code', { ascending: true }),
+      .select(`
+        id,
+        state_code,
+        zip_code,
+        created_at,
+        sub_service:sub_services!sub_service_id(
+          id,
+          name,
+          service:services(name)
+        ),
+        state:geo_states!state_code(
+          code,
+          name
+        ),
+        county:geo_counties!county_id(
+          id,
+          name
+        ),
+        city:geo_cities!city_id(
+          id,
+          name
+        ),
+        zip:geo_zips!zip_code(
+          code
+        )
+      `)
+      .order('state_code', { ascending: true })
+      .limit(500),
     supabase
       .from('commission_tiers')
       .select('*')
