@@ -148,7 +148,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       try {
         console.log('Initializing Google Places Autocomplete...')
         
-        autocompleteInstance = new google.maps.places.Autocomplete(
+        const googleMaps = (window as any).google
+        autocompleteInstance = new googleMaps.maps.places.Autocomplete(
           addressInputRef.current,
           {
             types: ['address'],
