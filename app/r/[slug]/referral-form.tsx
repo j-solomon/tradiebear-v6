@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +39,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   const [files, setFiles] = useState<File[]>([])
   const [darkMode, setDarkMode] = useState(false)
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false)
+  const addressInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
@@ -66,6 +67,92 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       document.documentElement.classList.remove('dark')
     }
   }, [darkMode])
+
+  // Initialize Google Places Autocomplete
+  useEffect(() => {
+    if (!addressInputRef.current) return
+
+    const loadGoogleMaps = () => {
+      // Check if Google Maps is already loaded
+      if (window.google?.maps?.places) {
+        initAutocomplete()
+        return
+      }
+
+      // Load Google Maps script
+      const script = document.createElement('script')
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+      script.async = true
+      script.defer = true
+      
+      script.onload = () => {
+        initAutocomplete()
+      }
+      
+      script.onerror = () => {
+        console.error('Failed to load Google Maps API')
+      }
+      
+      document.head.appendChild(script)
+    }
+
+    const initAutocomplete = () => {
+      if (!addressInputRef.current || !window.google?.maps?.places) return
+
+      const autocomplete = new google.maps.places.Autocomplete(
+        addressInputRef.current,
+        {
+          types: ['address'],
+          componentRestrictions: { country: 'us' },
+          fields: ['address_components', 'formatted_address']
+        }
+      )
+
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace()
+        
+        if (!place.address_components) return
+
+        // Extract address components
+        let streetNumber = ''
+        let route = ''
+        let city = ''
+        let state = ''
+        let zip = ''
+
+        place.address_components.forEach((component) => {
+          const types = component.types
+          
+          if (types.includes('street_number')) {
+            streetNumber = component.long_name
+          }
+          if (types.includes('route')) {
+            route = component.long_name
+          }
+          if (types.includes('locality')) {
+            city = component.long_name
+          }
+          if (types.includes('administrative_area_level_1')) {
+            state = component.short_name
+          }
+          if (types.includes('postal_code')) {
+            zip = component.long_name
+          }
+        })
+
+        // Update form data with extracted address components
+        setFormData(prev => ({
+          ...prev,
+          address: `${streetNumber} ${route}`.trim(),
+          city: city,
+          state: state,
+          zip: zip
+        }))
+      })
+    }
+
+    loadGoogleMaps()
+  }, [])
 
   // Filter sub-services based on selected service
   const availableSubServices = formData.service_id
@@ -388,13 +475,15 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 <div className="space-y-2">
                   <Label htmlFor="address" className="text-sm sm:text-base">Street Address *</Label>
                   <Input
+                    ref={addressInputRef}
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="123 Main St"
+                    placeholder="Start typing your address..."
                     className="h-11 sm:h-10 text-base"
+                    autoComplete="off"
                   />
-                  <p className="text-xs text-muted-foreground">Start typing your address for suggestions</p>
+                  <p className="text-xs text-muted-foreground">📍 Powered by Google Maps • Start typing for suggestions</p>
                 </div>
 
                 <div className="space-y-2">
