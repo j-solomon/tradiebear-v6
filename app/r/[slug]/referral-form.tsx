@@ -341,7 +341,14 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
   // Step 2 validation
   const validateStep2 = () => {
-    if (!formData.sub_service_id) {
+    // If no sub-services available, just require service_id
+    if (availableSubServices.length === 0 && !formData.service_id) {
+      toast({ variant: "destructive", title: "Service required", description: "Please select a service." })
+      return false
+    }
+    
+    // If sub-services exist, require selection
+    if (availableSubServices.length > 0 && !formData.sub_service_id) {
       toast({ variant: "destructive", title: "Service required", description: "Please select a specific service." })
       return false
     }
@@ -419,11 +426,12 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       return
     }
 
-    if (!formData.sub_service_id) {
+    // Require either sub_service_id OR service_id (for services without sub-categories)
+    if (!formData.sub_service_id && !formData.service_id) {
       toast({
         variant: "destructive",
         title: "Incomplete information",
-        description: "Please go back and select a specific service.",
+        description: "Please go back and select a service.",
       })
       return
     }
@@ -833,8 +841,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 </div>
               )}
 
-              {/* Budget & Timeline (only show after service selected) */}
-              {formData.sub_service_id && (
+              {/* Budget & Timeline (show after service/sub-service selected) */}
+              {(formData.sub_service_id || (formData.service_id && availableSubServices.length === 0)) && (
                 <>
                   <div className="space-y-3">
                     <Label className="text-base font-medium">Estimated Budget (Optional)</Label>
@@ -975,7 +983,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 >
                   Back
                 </Button>
-                {formData.sub_service_id && (
+                {(formData.sub_service_id || (formData.service_id && availableSubServices.length === 0)) && (
                   <Button 
                     type="button" 
                     onClick={handleNext} 
@@ -1051,14 +1059,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
               </div>
 
               {/* Terms acceptance */}
-              <div className="space-y-4 pt-2 border-t">
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm">
-                  <p className="flex items-start gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                    <span>You&apos;ve agreed to be contacted about your project via email, text, and phone.</span>
-                  </p>
-                </div>
-
+              <div className="space-y-4 pt-4 border-t">
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     id="terms"
