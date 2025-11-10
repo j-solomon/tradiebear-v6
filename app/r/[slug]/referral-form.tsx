@@ -72,7 +72,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   useEffect(() => {
     if (!addressInputRef.current) return
 
-    let autocompleteInstance: google.maps.places.Autocomplete | null = null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let autocompleteInstance: any = null
 
     const loadGoogleMaps = () => {
       // Check if API key exists
@@ -232,8 +233,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
     // Cleanup
     return () => {
-      if (autocompleteInstance) {
-        google.maps.event.clearInstanceListeners(autocompleteInstance)
+      if (autocompleteInstance && window.google?.maps?.event) {
+        window.google.maps.event.clearInstanceListeners(autocompleteInstance)
       }
     }
   }, [toast])
