@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { Upload, CheckCircle2, Loader2 } from "lucide-react"
+import { Upload, CheckCircle2, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Service {
   id: string
@@ -32,6 +32,7 @@ interface ReferralFormProps {
 }
 
 export default function ReferralForm({ referralLinkId, services, subServices }: ReferralFormProps) {
+  const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [files, setFiles] = useState<File[]>([])
@@ -62,11 +63,13 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     ? subServices.filter(sub => sub.service_id === formData.service_id)
     : []
 
+  const selectedService = services.find(s => s.id === formData.service_id)
+  const selectedSubService = subServices.find(s => s.id === formData.sub_service_id)
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
       
-      // Validate file count
       if (files.length + newFiles.length > 10) {
         toast({
           variant: "destructive",
@@ -76,7 +79,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         return
       }
 
-      // Validate file sizes (20 MB per file)
       const oversizedFiles = newFiles.filter(file => file.size > 20 * 1024 * 1024)
       if (oversizedFiles.length > 0) {
         toast({
@@ -95,31 +97,73 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     setFiles(files.filter((_, i) => i !== index))
   }
 
+  // Validation for each step
+  const validateStep1 = () => {
+    if (!formData.name.trim()) {
+      toast({ variant: "destructive", title: "Name required", description: "Please enter your full name." })
+      return false
+    }
+    if (!formData.email.trim() || !formData.email_confirm.trim()) {
+      toast({ variant: "destructive", title: "Email required", description: "Please enter your email address." })
+      return false
+    }
+    if (formData.email !== formData.email_confirm) {
+      toast({ variant: "destructive", title: "Email mismatch", description: "Email addresses do not match." })
+      return false
+    }
+    if (!formData.phone.trim()) {
+      toast({ variant: "destructive", title: "Phone required", description: "Please enter your phone number." })
+      return false
+    }
+    if (!formData.street.trim() || !formData.city.trim() || !formData.state.trim() || !formData.zip.trim()) {
+      toast({ variant: "destructive", title: "Address required", description: "Please complete your property address." })
+      return false
+    }
+    return true
+  }
+
+  const validateStep2 = () => {
+    if (!formData.service_id) {
+      toast({ variant: "destructive", title: "Service required", description: "Please select a service category." })
+      return false
+    }
+    // Only require sub-service if available
+    if (availableSubServices.length > 0 && !formData.sub_service_id) {
+      toast({ variant: "destructive", title: "Specific service required", description: "Please select a specific service." })
+      return false
+    }
+    if (!formData.timeline.trim()) {
+      toast({ variant: "destructive", title: "Timeline required", description: "Please enter your project timeline." })
+      return false
+    }
+    return true
+  }
+
+  const handleNext = () => {
+    if (currentStep === 1 && validateStep1()) {
+      setCurrentStep(2)
+    } else if (currentStep === 2 && validateStep2()) {
+      setCurrentStep(3)
+    }
+  }
+
+  const handleBack = () => {
+    setCurrentStep(currentStep - 1)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-
-    // Validation
-    if (formData.email !== formData.email_confirm) {
-      toast({
-        variant: "destructive",
-        title: "Email mismatch",
-        description: "Email addresses do not match.",
-      })
-      setLoading(false)
-      return
-    }
-
+    
     if (!formData.consent_terms) {
       toast({
         variant: "destructive",
         title: "Terms required",
         description: "You must accept the terms and conditions.",
       })
-      setLoading(false)
       return
     }
 
+    setLoading(true)
     const supabase = createClient()
 
     try {
@@ -133,14 +177,11 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
             .upload(fileName, file)
 
           if (error) throw error
-          
-          // Store just the file path, not a public URL
-          // Signed URLs will be generated when needed
           imageFilePaths.push(fileName)
         }
       }
 
-      // Prepare extra details with attachments and consent info
+      // Prepare extra details
       const extraDetails: any = {
         attachments: imageFilePaths.length > 0 ? imageFilePaths : [],
         consent_email: formData.consent_email,
@@ -154,12 +195,12 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
 
-      // Insert lead
+      // Insert lead - use sub_service_id if available, otherwise null
       const { error: insertError } = await supabase
         .from('leads')
         .insert({
           referral_id: referralLinkId,
-          sub_service_id: formData.sub_service_id,
+          sub_service_id: formData.sub_service_id || null,
           homeowner_first: firstName,
           homeowner_last: lastName,
           homeowner_email: formData.email,
@@ -209,333 +250,376 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Request Information</CardTitle>
+        <CardTitle>
+          {currentStep === 1 && "Contact Information"}
+          {currentStep === 2 && "Project Details"}
+          {currentStep === 3 && "Review & Submit"}
+        </CardTitle>
         <CardDescription>
-          Fill out the form below to get your free estimate. All fields marked with * are required.
+          Step {currentStep} of 3
         </CardDescription>
+        
+        {/* Progress Bar */}
+        <div className="flex gap-2 mt-4">
+          <div className={`h-2 flex-1 rounded ${currentStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`h-2 flex-1 rounded ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`h-2 flex-1 rounded ${currentStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Contact Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Contact Information</h3>
-            
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
+          
+          {/* Step 1: Contact Information */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="John Smith"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email_confirm">Confirm Email Address *</Label>
-              <Input
-                id="email_confirm"
-                type="email"
-                required
-                value={formData.email_confirm}
-                onChange={(e) => setFormData({ ...formData, email_confirm: e.target.value })}
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          {/* Property Address */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Property Address</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="street">Street Address *</Label>
-              <Input
-                id="street"
-                required
-                value={formData.street}
-                onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
-                <Input
-                  id="city"
-                  required
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="state">State *</Label>
-                <Input
-                  id="state"
-                  required
-                  maxLength={2}
-                  placeholder="CA"
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="zip">ZIP Code *</Label>
-                <Input
-                  id="zip"
-                  required
-                  maxLength={5}
-                  value={formData.zip}
-                  onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Project Details */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Project Details</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="service">Service Category *</Label>
-              <Select
-                required
-                value={formData.service_id}
-                onValueChange={(value) => setFormData({ ...formData, service_id: value, sub_service_id: "" })}
-                disabled={loading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a service category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {formData.service_id && (
-              <div className="space-y-2">
-                <Label htmlFor="sub_service">Specific Service *</Label>
-                <Select
-                  required
-                  value={formData.sub_service_id}
-                  onValueChange={(value) => setFormData({ ...formData, sub_service_id: value })}
-                  disabled={loading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select specific service" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSubServices.map((subService) => (
-                      <SelectItem key={subService.id} value={subService.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{subService.name}</span>
-                          {subService.description && (
-                            <span className="text-xs text-muted-foreground">{subService.description}</span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="budget">Budget (Optional)</Label>
-                <Input
-                  id="budget"
-                  type="number"
-                  placeholder="5000"
-                  value={formData.budget}
-                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="timeline">Timeline *</Label>
-                <Input
-                  id="timeline"
-                  required
-                  placeholder="e.g., Within 2 weeks"
-                  value={formData.timeline}
-                  onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes</Label>
-              <Textarea
-                id="notes"
-                rows={4}
-                placeholder="Tell us more about your project..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          {/* File Upload */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Photos (Optional)</h3>
-            <p className="text-sm text-muted-foreground">
-              Upload up to 10 images (JPG, PNG, HEIC). Max 20 MB each.
-            </p>
-            
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-              <Label htmlFor="files" className="cursor-pointer">
-                <span className="text-primary hover:underline">Click to upload</span> or drag and drop
-              </Label>
-              <Input
-                id="files"
-                type="file"
-                multiple
-                accept="image/jpeg,image/png,image/heic"
-                onChange={handleFileChange}
-                disabled={loading}
-                className="hidden"
-              />
-            </div>
-
-            {files.length > 0 && (
-              <div className="space-y-2">
-                {files.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                    <span className="text-sm truncate">{file.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(index)}
-                      disabled={loading}
-                    >
-                      Remove
-                    </Button>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="john@example.com"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          {/* Consent */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Communication Preferences</h3>
-            
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="consent_email"
-                  checked={formData.consent_email}
-                  onCheckedChange={(checked) => 
-                    setFormData({ ...formData, consent_email: checked as boolean })
-                  }
-                  disabled={loading}
-                />
-                <Label htmlFor="consent_email" className="text-sm font-normal">
-                  I agree to receive emails about my project
-                </Label>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email_confirm">Confirm Email *</Label>
+                    <Input
+                      id="email_confirm"
+                      type="email"
+                      value={formData.email_confirm}
+                      onChange={(e) => setFormData({ ...formData, email_confirm: e.target.value })}
+                      placeholder="john@example.com"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="consent_sms"
-                  checked={formData.consent_sms}
-                  onCheckedChange={(checked) => 
-                    setFormData({ ...formData, consent_sms: checked as boolean })
-                  }
-                  disabled={loading}
-                />
-                <Label htmlFor="consent_sms" className="text-sm font-normal">
-                  I agree to receive SMS updates about my project
-                </Label>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="(503) 555-0123"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="consent_call"
-                  checked={formData.consent_call}
-                  onCheckedChange={(checked) => 
-                    setFormData({ ...formData, consent_call: checked as boolean })
-                  }
-                  disabled={loading}
-                />
-                <Label htmlFor="consent_call" className="text-sm font-normal">
-                  I agree to receive phone calls about my project
-                </Label>
+              <div className="space-y-4">
+                <h3 className="font-semibold">Property Address</h3>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="street">Street Address *</Label>
+                  <Input
+                    id="street"
+                    value={formData.street}
+                    onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                    placeholder="123 Main St"
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="Portland"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State *</Label>
+                    <Input
+                      id="state"
+                      maxLength={2}
+                      placeholder="OR"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="zip">ZIP Code *</Label>
+                    <Input
+                      id="zip"
+                      maxLength={5}
+                      value={formData.zip}
+                      onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+                      placeholder="97201"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="consent_terms"
-                  checked={formData.consent_terms}
-                  onCheckedChange={(checked) => 
-                    setFormData({ ...formData, consent_terms: checked as boolean })
-                  }
-                  disabled={loading}
-                  required
-                />
-                <Label htmlFor="consent_terms" className="text-sm font-normal">
-                  I agree to the Terms and Conditions and Privacy Policy *
-                </Label>
+              <Button type="button" onClick={handleNext} className="w-full" size="lg">
+                Next: Project Details
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Step 2: Project Details */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="service">Service Category *</Label>
+                  <Select
+                    value={formData.service_id}
+                    onValueChange={(value) => setFormData({ ...formData, service_id: value, sub_service_id: "" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a service category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.service_id && availableSubServices.length > 0 && (
+                  <div className="space-y-2">
+                    <Label htmlFor="sub_service">Specific Service *</Label>
+                    <Select
+                      value={formData.sub_service_id}
+                      onValueChange={(value) => setFormData({ ...formData, sub_service_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select specific service" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSubServices.map((subService) => (
+                          <SelectItem key={subService.id} value={subService.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{subService.description || subService.name}</span>
+                              {subService.description && (
+                                <span className="text-xs text-muted-foreground">{subService.slug}</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="budget">Budget (Optional)</Label>
+                    <Input
+                      id="budget"
+                      type="number"
+                      placeholder="5000"
+                      value={formData.budget}
+                      onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="timeline">Timeline *</Label>
+                    <Input
+                      id="timeline"
+                      placeholder="e.g., Within 2 weeks"
+                      value={formData.timeline}
+                      onChange={(e) => setFormData({ ...formData, timeline: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Additional Notes</Label>
+                  <Textarea
+                    id="notes"
+                    rows={4}
+                    placeholder="Tell us more about your project..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* File Upload */}
+              <div className="space-y-4">
+                <h3 className="font-semibold">Photos (Optional)</h3>
+                <p className="text-sm text-muted-foreground">
+                  Upload up to 10 images (JPG, PNG, HEIC). Max 20 MB each.
+                </p>
+                
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                  <Label htmlFor="files" className="cursor-pointer">
+                    <span className="text-primary hover:underline">Click to upload</span> or drag and drop
+                  </Label>
+                  <Input
+                    id="files"
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/heic"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+
+                {files.length > 0 && (
+                  <div className="space-y-2">
+                    {files.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+                        <span className="text-sm truncate">{file.name}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-4">
+                <Button type="button" onClick={handleBack} variant="outline" className="flex-1" size="lg">
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button type="button" onClick={handleNext} className="flex-1" size="lg">
+                  Review
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             </div>
-          </div>
+          )}
 
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit Request"
-            )}
-          </Button>
+          {/* Step 3: Review & Submit */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="bg-muted p-4 rounded-lg space-y-3">
+                  <h3 className="font-semibold">Contact Information</h3>
+                  <div className="text-sm space-y-1">
+                    <p><strong>Name:</strong> {formData.name}</p>
+                    <p><strong>Email:</strong> {formData.email}</p>
+                    <p><strong>Phone:</strong> {formData.phone}</p>
+                    <p><strong>Address:</strong> {formData.street}, {formData.city}, {formData.state} {formData.zip}</p>
+                  </div>
+                </div>
+
+                <div className="bg-muted p-4 rounded-lg space-y-3">
+                  <h3 className="font-semibold">Project Details</h3>
+                  <div className="text-sm space-y-1">
+                    <p><strong>Service:</strong> {selectedService?.name}</p>
+                    {selectedSubService && (
+                      <p><strong>Specific Service:</strong> {selectedSubService.description || selectedSubService.name}</p>
+                    )}
+                    {formData.budget && <p><strong>Budget:</strong> ${formData.budget}</p>}
+                    <p><strong>Timeline:</strong> {formData.timeline}</p>
+                    {formData.notes && <p><strong>Notes:</strong> {formData.notes}</p>}
+                    {files.length > 0 && <p><strong>Photos:</strong> {files.length} file(s) attached</p>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold">Communication Preferences</h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="consent_email"
+                      checked={formData.consent_email}
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, consent_email: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="consent_email" className="text-sm font-normal">
+                      I agree to receive emails about my project
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="consent_sms"
+                      checked={formData.consent_sms}
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, consent_sms: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="consent_sms" className="text-sm font-normal">
+                      I agree to receive SMS updates about my project
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="consent_call"
+                      checked={formData.consent_call}
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, consent_call: checked as boolean })
+                      }
+                    />
+                    <Label htmlFor="consent_call" className="text-sm font-normal">
+                      I agree to receive phone calls about my project
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="consent_terms"
+                      checked={formData.consent_terms}
+                      onCheckedChange={(checked) => 
+                        setFormData({ ...formData, consent_terms: checked as boolean })
+                      }
+                      required
+                    />
+                    <Label htmlFor="consent_terms" className="text-sm font-normal">
+                      I agree to the Terms and Conditions and Privacy Policy *
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button type="button" onClick={handleBack} variant="outline" className="flex-1" size="lg">
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button type="submit" className="flex-1" size="lg" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Request"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </form>
       </CardContent>
     </Card>
   )
 }
-
