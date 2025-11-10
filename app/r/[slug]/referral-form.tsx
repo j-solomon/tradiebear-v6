@@ -479,13 +479,14 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         }
       }
 
-      // Prepare extra details with unified consent
+      // Prepare extra details with unified consent and budget range
       const extraDetails: any = {
         attachments: imageFilePaths.length > 0 ? imageFilePaths : [],
         consent_email: formData.consent_unified,
         consent_sms: formData.consent_unified,
         consent_call: formData.consent_unified,
-        consent_terms: formData.consent_terms
+        consent_terms: formData.consent_terms,
+        budget_range: formData.budget || null
       }
 
       // Split name into first and last
@@ -504,7 +505,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         city: formData.city,
         state: formData.state,
         zip: formData.zip,
-        budget_estimate: formData.budget ? parseFloat(formData.budget) : null,
+        budget_estimate: null,
         timeline: formData.timeline || null,
         notes: formData.notes,
         extra_details: extraDetails,
@@ -774,40 +775,64 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="budget" className="text-sm sm:text-base">Estimated Budget (Optional)</Label>
-                  <Input
-                    id="budget"
-                    type="number"
-                    min="100"
-                    max="1000000"
-                    step="100"
-                    placeholder="$100 - $10,000+"
-                    value={formData.budget}
-                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                    className="h-11 sm:h-10 text-base"
-                  />
+                <div className="space-y-3">
+                  <Label className="text-sm sm:text-base">Estimated Budget (Optional)</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Under $5,000", value: "Under $5,000" },
+                      { label: "$5,000 – $15,000", value: "$5,000 – $15,000" },
+                      { label: "$15,000 – $30,000", value: "$15,000 – $30,000" },
+                      { label: "$30,000+", value: "$30,000+" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, budget: option.value })}
+                        className={`
+                          relative p-4 rounded-lg border-2 text-center transition-all font-medium
+                          ${formData.budget === option.value 
+                            ? 'border-primary bg-primary/5 text-primary' 
+                            : 'border-muted hover:border-primary/50'
+                          }
+                        `}
+                      >
+                        {option.label}
+                        {formData.budget === option.value && (
+                          <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="timeline" className="text-sm sm:text-base">Project Timeline (Optional)</Label>
-                  <Select
-                    value={formData.timeline}
-                    onValueChange={(value) => setFormData({ ...formData, timeline: value })}
-                  >
-                    <SelectTrigger className="h-11 sm:h-10">
-                      <SelectValue placeholder="Select timeline" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Immediately">Immediately</SelectItem>
-                      <SelectItem value="Within 1 week">Within 1 week</SelectItem>
-                      <SelectItem value="Within 2 weeks">Within 2 weeks</SelectItem>
-                      <SelectItem value="Within 1 month">Within 1 month</SelectItem>
-                      <SelectItem value="1-3 months">1-3 months</SelectItem>
-                      <SelectItem value="3-6 months">3-6 months</SelectItem>
-                      <SelectItem value="Just exploring">Just exploring</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-3">
+                  <Label className="text-sm sm:text-base">Project Timeline (Optional)</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Ready Now", value: "Immediately" },
+                      { label: "This Month", value: "Within 1 month" },
+                      { label: "3-6 Months", value: "3-6 months" },
+                      { label: "Just Exploring", value: "Just exploring" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, timeline: option.value })}
+                        className={`
+                          relative p-4 rounded-lg border-2 text-center transition-all font-medium
+                          ${formData.timeline === option.value 
+                            ? 'border-primary bg-primary/5 text-primary' 
+                            : 'border-muted hover:border-primary/50'
+                          }
+                        `}
+                      >
+                        {option.label}
+                        {formData.timeline === option.value && (
+                          <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -910,7 +935,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                     {selectedSubService && (
                       <p><strong>Specific Service:</strong> {selectedSubService.description || selectedSubService.name}</p>
                     )}
-                    {formData.budget && <p><strong>Budget:</strong> ${formData.budget}</p>}
+                    {formData.budget && <p><strong>Budget:</strong> {formData.budget}</p>}
                     {formData.timeline && <p><strong>Timeline:</strong> {formData.timeline}</p>}
                     {formData.notes && <p><strong>Notes:</strong> {formData.notes}</p>}
                     {files.length > 0 && <p><strong>Photos:</strong> {files.length} file(s) attached</p>}

@@ -282,10 +282,12 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                                   {lead.city}, {lead.state} {lead.zip}
                                 </p>
                               </div>
-                              {lead.budget_estimate && (
+                              {(lead.extra_details?.budget_range || lead.budget_estimate) && (
                                 <div>
                                   <Label>Budget</Label>
-                                  <p className="text-sm">${lead.budget_estimate.toLocaleString()}</p>
+                                  <p className="text-sm">
+                                    {lead.extra_details?.budget_range || `$${lead.budget_estimate?.toLocaleString()}`}
+                                  </p>
                                 </div>
                               )}
                               {lead.timeline && (
