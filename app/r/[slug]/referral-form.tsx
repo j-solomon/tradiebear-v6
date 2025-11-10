@@ -8,10 +8,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/components/ui/use-toast"
-import { Upload, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Moon, Sun, ChevronDown } from "lucide-react"
+import { Upload, CheckCircle2, Loader2, ChevronRight, Moon, Sun, ChevronDown, Edit2, ArrowRight } from "lucide-react"
 import { saveStep1 } from "./save-step"
 
 interface Service {
@@ -33,6 +32,58 @@ interface ReferralFormProps {
   subServices: SubService[]
 }
 
+// Parent category mapping
+const PARENT_CATEGORIES = [
+  { 
+    id: 'remodeling', 
+    name: 'Remodeling', 
+    icon: '🏗️',
+    keywords: ['remodel', 'kitchen', 'bathroom', 'basement', 'adu', 'addition']
+  },
+  { 
+    id: 'roofing', 
+    name: 'Roofing', 
+    icon: '🏠',
+    keywords: ['roof', 'gutter', 'skylight']
+  },
+  { 
+    id: 'exterior', 
+    name: 'Exterior Services', 
+    icon: '🎨',
+    keywords: ['siding', 'deck', 'fence', 'pergola', 'gazebo', 'paint', 'exterior', 'window', 'door']
+  },
+  { 
+    id: 'interior', 
+    name: 'Interior Services', 
+    icon: '✨',
+    keywords: ['paint', 'interior', 'cabinet', 'countertop', 'flooring', 'tile']
+  },
+  { 
+    id: 'mechanical', 
+    name: 'HVAC & Mechanical', 
+    icon: '⚙️',
+    keywords: ['hvac', 'air', 'heating', 'cooling', 'plumb', 'electric']
+  },
+  { 
+    id: 'specialty', 
+    name: 'Specialty Services', 
+    icon: '⭐',
+    keywords: ['theater', 'golf', 'solar', 'smart', 'pool', 'sauna']
+  },
+  { 
+    id: 'cleaning', 
+    name: 'Cleaning & Maintenance', 
+    icon: '🧹',
+    keywords: ['clean', 'carpet', 'mold', 'water', 'fire', 'damage', 'repair', 'foundation']
+  },
+  { 
+    id: 'outdoor', 
+    name: 'Outdoor Living', 
+    icon: '🌳',
+    keywords: ['lawn', 'garden', 'landscape', 'outdoor', 'kitchen', 'pole barn']
+  },
+]
+
 export default function ReferralForm({ referralLinkId, services, subServices }: ReferralFormProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -41,6 +92,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   const [darkMode, setDarkMode] = useState(false)
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false)
   const [savedLeadId, setSavedLeadId] = useState<string | null>(null)
+  const [selectedParentCategory, setSelectedParentCategory] = useState("")
   const addressInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
@@ -77,105 +129,59 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     let autocompleteInstance: any = null
 
     const loadGoogleMaps = () => {
-      // Check if API key exists
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
       
       if (!apiKey) {
         console.error('Google Maps API key is missing')
-        toast({
-          variant: "destructive",
-          title: "Configuration Error",
-          description: "Google Maps API key is not configured. Address autocomplete is unavailable.",
-        })
         return
       }
 
-      // Check if Google Maps is already loaded
       if (window.google?.maps?.places) {
-        console.log('Google Maps already loaded, initializing autocomplete...')
         initAutocomplete()
         return
       }
 
-      // Check if script is already being loaded
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
       if (existingScript) {
-        console.log('Google Maps script already loading, waiting...')
         existingScript.addEventListener('load', () => initAutocomplete())
         return
       }
 
-      console.log('Loading Google Maps API...')
-
-      // Load Google Maps script
       const script = document.createElement('script')
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`
       script.async = true
       script.defer = true
       
-      // Add callback function to window
       window.initMap = () => {
-        console.log('Google Maps loaded successfully')
         initAutocomplete()
       }
       
-      script.onerror = (error) => {
-        console.error('Failed to load Google Maps API:', error)
-        toast({
-          variant: "destructive",
-          title: "Maps Load Error",
-          description: "Unable to load Google Maps. Address autocomplete is unavailable. You can still enter your address manually.",
-        })
+      script.onerror = () => {
+        console.error('Failed to load Google Maps')
       }
       
       document.head.appendChild(script)
     }
 
     const initAutocomplete = () => {
-      if (!addressInputRef.current) {
-        console.error('Address input ref not available')
-        return
-      }
-
-      if (!window.google?.maps?.places) {
-        console.error('Google Maps Places API not available')
-        toast({
-          variant: "destructive",
-          title: "Autocomplete Error",
-          description: "Address autocomplete is unavailable. Please enter your address manually.",
-        })
-        return
-      }
+      if (!addressInputRef.current || !window.google?.maps?.places) return
 
       try {
-        console.log('Initializing Google Places Autocomplete...')
-        
         const googleMaps = (window as any).google
         autocompleteInstance = new googleMaps.maps.places.Autocomplete(
           addressInputRef.current,
           {
             types: ['address'],
             componentRestrictions: { country: 'us' },
-            fields: ['address_components', 'formatted_address', 'geometry']
+            fields: ['address_components', 'formatted_address']
           }
         )
 
         autocompleteInstance.addListener('place_changed', () => {
           const place = autocompleteInstance?.getPlace()
           
-          console.log('Place selected:', place)
+          if (!place?.address_components) return
 
-          if (!place?.address_components) {
-            console.warn('No address components in selected place')
-            toast({
-              variant: "destructive",
-              title: "Invalid Selection",
-              description: "Please select a valid address from the dropdown.",
-            })
-            return
-          }
-
-          // Extract address components
           let streetNumber = ''
           let route = ''
           let city = ''
@@ -185,26 +191,13 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
           place.address_components.forEach((component: any) => {
             const types = component.types
             
-            if (types.includes('street_number')) {
-              streetNumber = component.long_name
-            }
-            if (types.includes('route')) {
-              route = component.long_name
-            }
-            if (types.includes('locality')) {
-              city = component.long_name
-            }
-            if (types.includes('administrative_area_level_1')) {
-              state = component.short_name
-            }
-            if (types.includes('postal_code')) {
-              zip = component.long_name
-            }
+            if (types.includes('street_number')) streetNumber = component.long_name
+            if (types.includes('route')) route = component.long_name
+            if (types.includes('locality')) city = component.long_name
+            if (types.includes('administrative_area_level_1')) state = component.short_name
+            if (types.includes('postal_code')) zip = component.long_name
           })
 
-          console.log('Extracted address:', { streetNumber, route, city, state, zip })
-
-          // Update form data with extracted address components
           setFormData(prev => ({
             ...prev,
             address: `${streetNumber} ${route}`.trim(),
@@ -212,83 +205,68 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
             state: state,
             zip: zip
           }))
-
-          // Show success toast
-          toast({
-            title: "Address Added",
-            description: `${city}, ${state} ${zip}`,
-          })
         })
-
-        console.log('Autocomplete initialized successfully')
       } catch (error) {
         console.error('Error initializing autocomplete:', error)
-        toast({
-          variant: "destructive",
-          title: "Initialization Error",
-          description: "Could not initialize address autocomplete. Please enter your address manually.",
-        })
       }
     }
 
     loadGoogleMaps()
 
-    // Cleanup
     return () => {
       if (autocompleteInstance && window.google?.maps?.event) {
         window.google.maps.event.clearInstanceListeners(autocompleteInstance)
       }
     }
-  }, [toast])
+  }, [])
 
-  // Filter sub-services based on selected service
-  const availableSubServices = formData.service_id
+  // Get services for selected parent category
+  const getServicesForParent = (parentId: string) => {
+    const parent = PARENT_CATEGORIES.find(p => p.id === parentId)
+    if (!parent) return []
+    
+    return services.filter(service => 
+      parent.keywords.some(keyword => 
+        service.name.toLowerCase().includes(keyword.toLowerCase())
+      )
+    )
+  }
+
+  // Get sub-services for selected service
+  const availableSubServices = formData.service_id 
     ? subServices.filter(sub => sub.service_id === formData.service_id)
     : []
 
   const selectedService = services.find(s => s.id === formData.service_id)
   const selectedSubService = subServices.find(s => s.id === formData.sub_service_id)
 
-  // Auto-format phone number as user types
-  const formatPhoneNumber = (value: string) => {
-    const phoneNumber = value.replace(/\D/g, '')
-    if (phoneNumber.length <= 3) {
-      return phoneNumber
-    } else if (phoneNumber.length <= 6) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
-    } else {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
-    }
-  }
-
+  // Phone formatting
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value)
+    const value = e.target.value.replace(/\D/g, '')
+    let formatted = value
+    
+    if (value.length > 0) {
+      if (value.length <= 3) formatted = `(${value}`
+      else if (value.length <= 6) formatted = `(${value.slice(0, 3)}) ${value.slice(3)}`
+      else formatted = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6, 10)}`
+    }
+    
     setFormData({ ...formData, phone: formatted })
   }
 
-  // Auto-fill city and state from ZIP code
-  const handleZipChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const zip = e.target.value.replace(/\D/g, '').slice(0, 5)
-    setFormData({ ...formData, zip })
-
-    if (zip.length === 5) {
-      try {
-        const response = await fetch(`https://api.zippopotam.us/us/${zip}`)
-        if (response.ok) {
-          const data = await response.json()
-          setFormData(prev => ({
-            ...prev,
-            city: data.places[0]['place name'],
-            state: data.places[0]['state abbreviation']
-          }))
-        }
-      } catch (error) {
-        // Silently fail - user can still manually enter
-        console.log('ZIP lookup failed', error)
-      }
+  // ZIP code change handler
+  const handleZipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 5)
+    setFormData({ ...formData, zip: value })
+    
+    // Auto-fill city/state based on ZIP (simple lookup - in production use a proper API)
+    if (value.length === 5) {
+      // This is a placeholder - you'd typically use a ZIP lookup service
+      // For now, we'll rely on the Google Maps autocomplete
     }
   }
 
+  // File handling
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files)
@@ -320,7 +298,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     setFiles(files.filter((_, i) => i !== index))
   }
 
-  // Validation for each step
+  // Step 1 validation
   const validateStep1 = () => {
     if (!formData.name.trim()) {
       toast({ variant: "destructive", title: "Name required", description: "Please enter your full name." })
@@ -361,37 +339,20 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     return true
   }
 
+  // Step 2 validation
   const validateStep2 = () => {
-    if (!formData.service_id) {
-      toast({ variant: "destructive", title: "Service required", description: "Please select a service category." })
-      return false
-    }
-    
-    // Always require sub-service selection
     if (!formData.sub_service_id) {
-      if (availableSubServices.length === 0) {
-        toast({ 
-          variant: "destructive", 
-          title: "No services available", 
-          description: "This service category has no specific services. Please contact support or choose another category." 
-        })
-      } else {
-        toast({ 
-          variant: "destructive", 
-          title: "Specific service required", 
-          description: "Please select a specific service." 
-        })
-      }
+      toast({ variant: "destructive", title: "Service required", description: "Please select a specific service." })
       return false
     }
     return true
   }
 
+  // Handle next/save
   const handleNext = async () => {
     if (currentStep === 1) {
       if (!validateStep1()) return
       
-      // Save Step 1 data to database
       setLoading(true)
       try {
         const result = await saveStep1({
@@ -407,7 +368,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         })
 
         if (result.error) {
-          console.error('Error saving Step 1:', result.error)
           toast({
             variant: "destructive",
             title: "Save Error",
@@ -418,10 +378,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         }
 
         setSavedLeadId(result.leadId || null)
-        
         setCurrentStep(2)
       } catch (error) {
-        console.error('Error saving Step 1:', error)
         toast({
           variant: "destructive",
           title: "Error",
@@ -436,9 +394,19 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   }
 
   const handleBack = () => {
+    if (currentStep === 2) {
+      // Reset service selections when going back
+      setSelectedParentCategory("")
+      setFormData({ ...formData, service_id: "", sub_service_id: "" })
+    }
     setCurrentStep(currentStep - 1)
   }
 
+  const editStep = (step: number) => {
+    setCurrentStep(step)
+  }
+
+  // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -451,7 +419,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       return
     }
 
-    // Final validation check - ensure sub-service is selected
     if (!formData.sub_service_id) {
       toast({
         variant: "destructive",
@@ -465,7 +432,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     const supabase = createClient()
 
     try {
-      // Upload images if any
+      // Upload images
       let imageFilePaths: string[] = []
       if (files.length > 0) {
         for (const file of files) {
@@ -479,7 +446,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         }
       }
 
-      // Prepare extra details with unified consent and budget range
+      // Prepare data
       const extraDetails: any = {
         attachments: imageFilePaths.length > 0 ? imageFilePaths : [],
         consent_email: formData.consent_unified,
@@ -489,7 +456,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         budget_range: formData.budget || null
       }
 
-      // Split name into first and last
       const nameParts = formData.name.trim().split(' ')
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
@@ -510,11 +476,10 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         notes: formData.notes,
         extra_details: extraDetails,
         stage: 'submitted',
-        completion_status: 'submitted', // Mark as fully complete
+        completion_status: 'submitted',
       }
 
       if (savedLeadId) {
-        // Update the existing partial lead with full details
         const { error: updateError } = await supabase
           .from('leads')
           .update(fullLeadData)
@@ -522,7 +487,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
         if (updateError) throw updateError
       } else {
-        // Fallback: Insert new lead if Step 1 save somehow failed
         const { error: insertError } = await supabase
           .from('leads')
           .insert(fullLeadData)
@@ -545,442 +509,596 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     }
   }
 
+  // Success state
   if (submitted) {
     return (
       <Card className="text-center py-12 border-0 sm:border">
         <CardContent className="space-y-4">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
-          <h2 className="text-2xl font-bold">Thank You!</h2>
-          <p className="text-muted-foreground">
-            We&apos;ve received your estimate request and will contact you shortly.
+          <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center">
+            <CheckCircle2 className="w-10 h-10 text-green-500" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold">Thank You!</h2>
+          <p className="text-muted-foreground text-base sm:text-lg max-w-md mx-auto">
+            We&apos;ve received your estimate request and will contact you within 24 hours.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Check your email for confirmation.
           </p>
         </CardContent>
       </Card>
     )
   }
 
+  // Progress steps
+  const steps = [
+    { number: 1, label: "Contact Info" },
+    { number: 2, label: "Project Details" },
+    { number: 3, label: "Review & Submit" }
+  ]
+
   return (
-    <Card className="border-0 sm:border">
-      <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
-        <div className="flex items-start sm:items-center justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg sm:text-xl md:text-2xl leading-tight">
+    <Card className="border-0 sm:border shadow-lg">
+      <CardHeader className="px-4 sm:px-6 py-5 sm:py-6 border-b">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="flex-1">
+            <CardTitle className="text-xl sm:text-2xl font-bold leading-tight mb-1">
               {currentStep === 1 && "Contact Information"}
               {currentStep === 2 && "Project Details"}
               {currentStep === 3 && "Review & Submit"}
             </CardTitle>
-            <CardDescription className="text-sm sm:text-base mt-1">
-              Step {currentStep} of 3
+            <CardDescription className="text-sm sm:text-base">
+              {currentStep === 1 && "Takes less than 90 seconds"}
+              {currentStep === 2 && "Tell us about your project"}
+              {currentStep === 3 && "One last look before we connect you"}
             </CardDescription>
           </div>
           
-          {/* Dark Mode Toggle */}
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
             onClick={() => setDarkMode(!darkMode)}
-            className="h-10 w-10 sm:h-9 sm:w-9 flex-shrink-0"
-            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            className="h-9 w-9 flex-shrink-0"
           >
-            {darkMode ? (
-              <Sun className="h-5 w-5 sm:h-4 sm:w-4" />
-            ) : (
-              <Moon className="h-5 w-5 sm:h-4 sm:w-4" />
-            )}
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
         </div>
-        
-        {/* Progress Bar */}
-        <div className="flex gap-2 mt-4">
-          <div className={`h-2.5 sm:h-2 flex-1 rounded-full ${currentStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`h-2.5 sm:h-2 flex-1 rounded-full ${currentStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-          <div className={`h-2.5 sm:h-2 flex-1 rounded-full ${currentStep >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+
+        {/* Progress bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-xs sm:text-sm font-medium mb-2">
+            {steps.map((step, idx) => (
+              <div 
+                key={step.number}
+                className={`flex items-center ${
+                  step.number === currentStep 
+                    ? 'text-primary' 
+                    : step.number < currentStep 
+                      ? 'text-muted-foreground' 
+                      : 'text-muted-foreground/50'
+                }`}
+              >
+                <span className={`
+                  w-6 h-6 rounded-full flex items-center justify-center text-xs mr-1.5
+                  ${step.number === currentStep ? 'bg-primary text-primary-foreground' : ''}
+                  ${step.number < currentStep ? 'bg-primary/20' : ''}
+                  ${step.number > currentStep ? 'bg-muted' : ''}
+                `}>
+                  {step.number < currentStep ? '✓' : step.number}
+                </span>
+                <span className="hidden sm:inline">{step.label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary transition-all duration-300 ease-in-out"
+              style={{ width: `${(currentStep / 3) * 100}%` }}
+            />
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="px-4 sm:px-6 py-4 sm:py-6">
-        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+
+      <CardContent className="px-4 sm:px-6 py-5 sm:py-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* Step 1: Contact Information */}
+          {/* ========== STEP 1: CONTACT INFO ========== */}
           {currentStep === 1 && (
-            <div className="space-y-5 sm:space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm sm:text-base">Full Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="John Smith"
-                    className="h-11 sm:h-10 text-base"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm sm:text-base">Email Address *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="john@example.com"
-                    className="h-11 sm:h-10 text-base"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm sm:text-base">Phone Number *</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handlePhoneChange}
-                    placeholder="(503) 555-0123"
-                    className="h-11 sm:h-10 text-base"
-                    maxLength={14}
-                  />
-                </div>
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-base font-medium">Full Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="John Smith"
+                  className="h-12 text-base"
+                  autoComplete="name"
+                />
               </div>
 
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Property Address</h3>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-base font-medium">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  className="h-12 text-base"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-base font-medium">Phone Number *</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handlePhoneChange}
+                  placeholder="(503) 555-1234"
+                  className="h-12 text-base"
+                  autoComplete="tel"
+                />
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <h3 className="font-semibold text-base">Property Address</h3>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="address" className="text-sm sm:text-base">Street Address *</Label>
+                  <Label htmlFor="address" className="text-base font-medium">Street Address *</Label>
                   <Input
                     ref={addressInputRef}
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="Start typing your address..."
-                    className="h-11 sm:h-10 text-base"
+                    className="h-12 text-base"
                     autoComplete="off"
                   />
-                  <p className="text-xs text-muted-foreground">📍 Powered by Google Maps • Start typing for suggestions</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="text-primary">●</span> Powered by Google Maps
+                  </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="zip" className="text-sm sm:text-base">ZIP Code *</Label>
-                  <Input
-                    id="zip"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={5}
-                    value={formData.zip}
-                    onChange={handleZipChange}
-                    placeholder="97201"
-                    className="h-11 sm:h-10 text-base"
-                  />
-                  {formData.city && formData.state && (
-                    <p className="text-xs text-muted-foreground">
-                      📍 {formData.city}, {formData.state}
-                    </p>
-                  )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="zip" className="text-base font-medium">ZIP Code *</Label>
+                    <Input
+                      id="zip"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      value={formData.zip}
+                      onChange={handleZipChange}
+                      placeholder="97201"
+                      className="h-12 text-base"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">City / State</Label>
+                    <div className="h-12 px-3 bg-muted rounded-md flex items-center text-sm text-muted-foreground">
+                      {formData.city && formData.state 
+                        ? `${formData.city}, ${formData.state}` 
+                        : 'Auto-filled'}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Consent Section */}
-              <div className="space-y-3 pt-4 border-t">
-                <h4 className="font-semibold text-sm sm:text-base">Communication Consent</h4>
+              {/* Consent */}
+              <div className="space-y-3 pt-3 border-t">
                 <div className="flex items-start space-x-3">
                   <Checkbox
-                    id="consent_unified_step1"
+                    id="consent"
                     checked={formData.consent_unified}
                     onCheckedChange={(checked) => 
                       setFormData({ ...formData, consent_unified: checked as boolean })
                     }
                     required
-                    className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
+                    className="mt-0.5 h-5 w-5"
                   />
-                  <Label htmlFor="consent_unified_step1" className="text-sm font-normal leading-tight cursor-pointer">
+                  <Label htmlFor="consent" className="text-sm leading-tight cursor-pointer font-normal">
                     I agree to be contacted about my project. *
                   </Label>
                 </div>
+                <p className="text-xs text-muted-foreground pl-8">
+                  By continuing, you agree to our{' '}
+                  <a href="/terms" className="underline hover:text-foreground">Terms</a>
+                  {' '}and{' '}
+                  <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>.
+                </p>
               </div>
 
               <Button 
                 type="button" 
                 onClick={handleNext} 
                 disabled={loading}
-                className="w-full h-12 sm:h-11 text-base" 
+                className="w-full h-12 text-base font-semibold" 
                 size="lg"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Saving...
                   </>
                 ) : (
                   <>
-                    Next: Project Details
-                    <ChevronRight className="ml-2 h-4 w-4" />
+                    Continue
+                    <ChevronRight className="ml-2 h-5 w-5" />
                   </>
                 )}
               </Button>
             </div>
           )}
 
-          {/* Step 2: Project Details */}
+          {/* ========== STEP 2: PROJECT DETAILS ========== */}
           {currentStep === 2 && (
-            <div className="space-y-5 sm:space-y-6">
-              <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Parent category selection */}
+              {!selectedParentCategory && (
                 <div className="space-y-3">
-                  <Label className="text-sm sm:text-base">Service Category *</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {services.map((service) => (
+                  <Label className="text-base font-medium">What type of service do you need? *</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+                    {PARENT_CATEGORIES.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        onClick={() => setSelectedParentCategory(category.id)}
+                        className="relative p-4 rounded-xl border-2 border-muted hover:border-primary/50 transition-all text-left group hover:shadow-md"
+                      >
+                        <div className="text-2xl mb-2">{category.icon}</div>
+                        <div className="font-semibold text-sm group-hover:text-primary transition-colors">
+                          {category.name}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Service selection (after parent selected) */}
+              {selectedParentCategory && !formData.service_id && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">
+                      Select a {PARENT_CATEGORIES.find(p => p.id === selectedParentCategory)?.name} service *
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedParentCategory("")}
+                      className="text-xs"
+                    >
+                      ← Change category
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {getServicesForParent(selectedParentCategory).map((service) => (
                       <button
                         key={service.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, service_id: service.id, sub_service_id: "" })}
+                        onClick={() => setFormData({ ...formData, service_id: service.id })}
+                        className="relative p-4 rounded-lg border-2 border-muted hover:border-primary transition-all text-left"
+                      >
+                        <div className="font-medium text-sm">{service.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-service selection */}
+              {formData.service_id && availableSubServices.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-medium">What specifically do you need? *</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setFormData({ ...formData, service_id: "", sub_service_id: "" })
+                      }}
+                      className="text-xs"
+                    >
+                      ← Change service
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
+                    {availableSubServices.map((subService) => (
+                      <button
+                        key={subService.id}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, sub_service_id: subService.id })}
                         className={`
-                          relative p-4 rounded-lg border-2 text-left transition-all
-                          ${formData.service_id === service.id 
+                          relative p-4 rounded-lg border-2 transition-all text-left
+                          ${formData.sub_service_id === subService.id 
                             ? 'border-primary bg-primary/5' 
                             : 'border-muted hover:border-primary/50'
                           }
                         `}
                       >
-                        <div className="font-semibold text-sm">{service.name}</div>
-                        {formData.service_id === service.id && (
-                          <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
+                        <div className="font-medium text-sm">
+                          {subService.description || subService.name}
+                        </div>
+                        {formData.sub_service_id === subService.id && (
+                          <CheckCircle2 className="absolute top-4 right-4 h-5 w-5 text-primary" />
                         )}
                       </button>
                     ))}
                   </div>
                 </div>
+              )}
 
-                {formData.service_id && availableSubServices.length > 0 && (
-                  <div className="space-y-2">
-                    <Label htmlFor="sub_service" className="text-sm sm:text-base">Specific Service *</Label>
-                    <Select
-                      value={formData.sub_service_id}
-                      onValueChange={(value) => setFormData({ ...formData, sub_service_id: value })}
-                    >
-                      <SelectTrigger className="h-11 sm:h-10">
-                        <SelectValue placeholder="Select specific service" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSubServices.map((subService) => (
-                          <SelectItem key={subService.id} value={subService.id} className="py-3 sm:py-2">
-                            <div className="flex flex-col">
-                              <span className="font-medium">{subService.description || subService.name}</span>
-                              {subService.description && (
-                                <span className="text-xs text-muted-foreground">{subService.slug}</span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <Label className="text-sm sm:text-base">Estimated Budget (Optional)</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { label: "Under $5,000", value: "Under $5,000" },
-                      { label: "$5,000 – $15,000", value: "$5,000 – $15,000" },
-                      { label: "$15,000 – $30,000", value: "$15,000 – $30,000" },
-                      { label: "$30,000+", value: "$30,000+" },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, budget: option.value })}
-                        className={`
-                          relative p-4 rounded-lg border-2 text-center transition-all font-medium
-                          ${formData.budget === option.value 
-                            ? 'border-primary bg-primary/5 text-primary' 
-                            : 'border-muted hover:border-primary/50'
-                          }
-                        `}
-                      >
-                        {option.label}
-                        {formData.budget === option.value && (
-                          <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label className="text-sm sm:text-base">Project Timeline (Optional)</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { label: "Ready Now", value: "Immediately" },
-                      { label: "This Month", value: "Within 1 month" },
-                      { label: "3-6 Months", value: "3-6 months" },
-                      { label: "Just Exploring", value: "Just exploring" },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, timeline: option.value })}
-                        className={`
-                          relative p-4 rounded-lg border-2 text-center transition-all font-medium
-                          ${formData.timeline === option.value 
-                            ? 'border-primary bg-primary/5 text-primary' 
-                            : 'border-muted hover:border-primary/50'
-                          }
-                        `}
-                      >
-                        {option.label}
-                        {formData.timeline === option.value && (
-                          <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Collapsible Optional Details */}
-              <Collapsible open={optionalDetailsOpen} onOpenChange={setOptionalDetailsOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button type="button" variant="outline" className="w-full h-11 text-base">
-                    Add Optional Project Details
-                    <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${optionalDetailsOpen ? 'rotate-180' : ''}`} />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="notes" className="text-sm sm:text-base">Additional Notes</Label>
-                    <Textarea
-                      id="notes"
-                      rows={4}
-                      placeholder="Tell us more about your project..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      className="text-base min-h-[100px]"
-                    />
-                  </div>
-
-                  {/* File Upload */}
+              {/* Budget & Timeline (only show after service selected) */}
+              {formData.sub_service_id && (
+                <>
                   <div className="space-y-3">
-                    <Label className="text-sm sm:text-base">Photos</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Upload up to 10 images (JPG, PNG, HEIC). Max 20 MB each.
-                    </p>
-                    
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 py-8 text-center touch-manipulation">
-                      <Upload className="w-10 h-10 sm:w-8 sm:h-8 mx-auto mb-3 sm:mb-2 text-muted-foreground" />
-                      <Label htmlFor="files" className="cursor-pointer text-sm sm:text-base">
-                        <span className="text-primary hover:underline">Click to upload</span> or drag and drop
-                      </Label>
-                      <Input
-                        id="files"
-                        type="file"
-                        multiple
-                        accept="image/jpeg,image/png,image/heic"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
+                    <Label className="text-base font-medium">Estimated Budget (Optional)</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: "Under $5K", value: "Under $5,000" },
+                        { label: "$5K – $15K", value: "$5,000 – $15,000" },
+                        { label: "$15K – $30K", value: "$15,000 – $30,000" },
+                        { label: "$30K+", value: "$30,000+" },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, budget: option.value })}
+                          className={`
+                            relative p-4 rounded-lg border-2 text-center transition-all font-medium
+                            ${formData.budget === option.value 
+                              ? 'border-primary bg-primary/5 text-primary' 
+                              : 'border-muted hover:border-primary/50'
+                            }
+                          `}
+                        >
+                          {option.label}
+                          {formData.budget === option.value && (
+                            <CheckCircle2 className="absolute top-2 right-2 h-4 w-4" />
+                          )}
+                        </button>
+                      ))}
                     </div>
-
-                    {files.length > 0 && (
-                      <div className="space-y-2">
-                        {files.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 sm:p-2 bg-muted rounded">
-                            <span className="text-sm truncate flex-1">{file.name}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFile(index)}
-                              className="ml-2 h-9 sm:h-8"
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                <Button type="button" onClick={handleBack} variant="outline" className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg">
-                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  <div className="space-y-3">
+                    <Label className="text-base font-medium">Project Timeline (Optional)</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: "Ready Now", value: "Immediately" },
+                        { label: "This Month", value: "Within 1 month" },
+                        { label: "3–6 Months", value: "3-6 months" },
+                        { label: "Just Exploring", value: "Just exploring" },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, timeline: option.value })}
+                          className={`
+                            relative p-4 rounded-lg border-2 text-center transition-all font-medium
+                            ${formData.timeline === option.value 
+                              ? 'border-primary bg-primary/5 text-primary' 
+                              : 'border-muted hover:border-primary/50'
+                            }
+                          `}
+                        >
+                          {option.label}
+                          {formData.timeline === option.value && (
+                            <CheckCircle2 className="absolute top-2 right-2 h-4 w-4" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Optional details accordion */}
+                  <Collapsible open={optionalDetailsOpen} onOpenChange={setOptionalDetailsOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full h-11 text-base justify-between"
+                      >
+                        <span>Add Optional Details</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${optionalDetailsOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="notes" className="text-base">Additional Notes</Label>
+                        <Textarea
+                          id="notes"
+                          value={formData.notes}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="Tell us more about your project..."
+                          className="min-h-24 text-base"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="photos" className="text-base">Upload Photos</Label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Upload up to 10 images (JPG, PNG, HEIC). Max 20 MB each.
+                        </p>
+                        <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                          <input
+                            id="photos"
+                            type="file"
+                            multiple
+                            accept="image/*,.heic"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                          <label htmlFor="photos" className="cursor-pointer">
+                            <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+                            <p className="text-sm font-medium">Click to upload</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {files.length}/10 files selected
+                            </p>
+                          </label>
+                        </div>
+
+                        {files.length > 0 && (
+                          <div className="space-y-2 mt-3">
+                            {files.map((file, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                                <span className="text-sm truncate flex-1">{file.name}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeFile(index)}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button 
+                  type="button" 
+                  onClick={handleBack} 
+                  variant="outline" 
+                  className="w-full sm:w-auto h-12 text-base px-8"
+                >
                   Back
                 </Button>
-                <Button type="button" onClick={handleNext} className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg">
-                  Review
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+                {formData.sub_service_id && (
+                  <Button 
+                    type="button" 
+                    onClick={handleNext} 
+                    className="w-full sm:flex-1 h-12 text-base font-semibold"
+                  >
+                    Review & Submit
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                )}
               </div>
             </div>
           )}
 
-          {/* Step 3: Review & Submit */}
+          {/* ========== STEP 3: REVIEW & SUBMIT ========== */}
           {currentStep === 3 && (
-            <div className="space-y-5 sm:space-y-6">
-              <div className="space-y-3 sm:space-y-4">
-                <div className="bg-muted p-4 rounded-lg space-y-3">
-                  <h3 className="font-semibold text-base sm:text-lg">Contact Information</h3>
-                  <div className="text-sm sm:text-base space-y-1.5 sm:space-y-1">
-                    <p><strong>Name:</strong> {formData.name}</p>
-                    <p><strong>Email:</strong> {formData.email}</p>
-                    <p><strong>Phone:</strong> {formData.phone}</p>
-                    <p><strong>Address:</strong> {formData.address}, {formData.city}, {formData.state} {formData.zip}</p>
-                  </div>
+            <div className="space-y-6">
+              {/* Contact Info Summary */}
+              <div className="bg-muted/50 rounded-xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    📱 Contact Information
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editStep(1)}
+                    className="text-xs"
+                  >
+                    <Edit2 className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
                 </div>
-
-                <div className="bg-muted p-4 rounded-lg space-y-3">
-                  <h3 className="font-semibold text-base sm:text-lg">Project Details</h3>
-                  <div className="text-sm sm:text-base space-y-1.5 sm:space-y-1">
-                    <p><strong>Service:</strong> {selectedService?.name}</p>
-                    {selectedSubService && (
-                      <p><strong>Specific Service:</strong> {selectedSubService.description || selectedSubService.name}</p>
-                    )}
-                    {formData.budget && <p><strong>Budget:</strong> {formData.budget}</p>}
-                    {formData.timeline && <p><strong>Timeline:</strong> {formData.timeline}</p>}
-                    {formData.notes && <p><strong>Notes:</strong> {formData.notes}</p>}
-                    {files.length > 0 && <p><strong>Photos:</strong> {files.length} file(s) attached</p>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Terms & Conditions</h3>
-                
-                <div className="space-y-3.5">
-                  <div className="bg-muted/50 p-4 rounded-lg text-sm text-muted-foreground">
-                    <p>✓ You&apos;ve already agreed to receive project updates via email, text, and phone.</p>
-                  </div>
-
-                  <div className="flex items-start space-x-3 sm:space-x-2">
-                    <Checkbox
-                      id="consent_terms"
-                      checked={formData.consent_terms}
-                      onCheckedChange={(checked) => 
-                        setFormData({ ...formData, consent_terms: checked as boolean })
-                      }
-                      required
-                      className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
-                    />
-                    <Label htmlFor="consent_terms" className="text-sm sm:text-base font-normal leading-tight cursor-pointer">
-                      I agree to the Terms and Conditions and Privacy Policy *
-                    </Label>
-                  </div>
+                <div className="text-sm space-y-1.5 text-muted-foreground">
+                  <p><strong className="text-foreground">Name:</strong> {formData.name}</p>
+                  <p><strong className="text-foreground">Email:</strong> {formData.email}</p>
+                  <p><strong className="text-foreground">Phone:</strong> {formData.phone}</p>
+                  <p><strong className="text-foreground">Address:</strong> {formData.address}, {formData.city}, {formData.state} {formData.zip}</p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2">
-                <Button type="button" onClick={handleBack} variant="outline" className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg">
-                  <ChevronLeft className="mr-2 h-4 w-4" />
+              {/* Project Details Summary */}
+              <div className="bg-muted/50 rounded-xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    🏗️ Project Details
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editStep(2)}
+                    className="text-xs"
+                  >
+                    <Edit2 className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+                <div className="text-sm space-y-1.5 text-muted-foreground">
+                  <p><strong className="text-foreground">Service:</strong> {selectedService?.name}</p>
+                  {selectedSubService && (
+                    <p><strong className="text-foreground">Specific:</strong> {selectedSubService.description || selectedSubService.name}</p>
+                  )}
+                  {formData.budget && <p><strong className="text-foreground">Budget:</strong> {formData.budget}</p>}
+                  {formData.timeline && <p><strong className="text-foreground">Timeline:</strong> {formData.timeline}</p>}
+                  {formData.notes && (
+                    <p><strong className="text-foreground">Notes:</strong> {formData.notes}</p>
+                  )}
+                  {files.length > 0 && (
+                    <p><strong className="text-foreground">Photos:</strong> {files.length} file(s) attached</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Terms acceptance */}
+              <div className="space-y-4 pt-2 border-t">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm">
+                  <p className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span>You&apos;ve agreed to be contacted about your project via email, text, and phone.</span>
+                  </p>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="terms"
+                    checked={formData.consent_terms}
+                    onCheckedChange={(checked) => 
+                      setFormData({ ...formData, consent_terms: checked as boolean })
+                    }
+                    required
+                    className="mt-0.5 h-5 w-5"
+                  />
+                  <Label htmlFor="terms" className="text-sm leading-tight cursor-pointer font-normal">
+                    I agree to the <a href="/terms" className="underline hover:text-primary">Terms and Conditions</a> and <a href="/privacy" className="underline hover:text-primary">Privacy Policy</a> *
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                <Button 
+                  type="button" 
+                  onClick={handleBack} 
+                  variant="outline" 
+                  className="w-full sm:w-auto h-12 text-base px-8"
+                >
                   Back
                 </Button>
-                <Button type="submit" className="w-full sm:flex-1 h-12 sm:h-11 text-base" size="lg" disabled={loading}>
+                <Button 
+                  type="submit" 
+                  className="w-full sm:flex-1 h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Submitting...
                     </>
                   ) : (
-                    "Submit Request"
+                    <>
+                      Get My Estimate
+                      <CheckCircle2 className="ml-2 h-5 w-5" />
+                    </>
                   )}
                 </Button>
               </div>

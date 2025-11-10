@@ -59,13 +59,25 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
   ])
 
   return (
-    <div className="min-h-screen bg-background py-4 sm:py-8 px-3 sm:px-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-6 sm:py-12 px-3 sm:px-4">
       <div className="max-w-3xl mx-auto">
         <div className="mb-6 sm:mb-8 text-center px-2">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Get Your Free Estimate</h1>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium mb-4">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            One simple form
+          </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 leading-tight">
+            Get Your Free Estimate
+          </h1>
+          <p className="text-muted-foreground text-base sm:text-lg mb-2">
+            Connect with top-rated professionals in your area
+          </p>
           {referralLink.profiles && (
-            <p className="text-muted-foreground text-base sm:text-lg">
-              Referred by {referralLink.profiles.name || referralLink.profiles.handle}
+            <p className="text-sm text-muted-foreground">
+              Trusted referral from <span className="font-semibold text-foreground">{referralLink.profiles.name || referralLink.profiles.handle}</span>
             </p>
           )}
         </div>
@@ -75,6 +87,12 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
           services={services || []}
           subServices={subServices || []}
         />
+        
+        <div className="mt-8 text-center">
+          <p className="text-xs text-muted-foreground">
+            🔒 Your information is secure and will never be shared without your consent
+          </p>
+        </div>
       </div>
     </div>
   )
