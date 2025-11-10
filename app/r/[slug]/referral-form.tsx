@@ -72,7 +72,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   useEffect(() => {
     if (!addressInputRef.current) return
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let autocompleteInstance: any = null
 
     const loadGoogleMaps = () => {
