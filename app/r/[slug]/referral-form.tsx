@@ -180,7 +180,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
           let state = ''
           let zip = ''
 
-          place.address_components.forEach((component) => {
+          place.address_components.forEach((component: any) => {
             const types = component.types
             
             if (types.includes('street_number')) {
