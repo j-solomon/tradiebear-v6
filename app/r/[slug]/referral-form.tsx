@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useToast } from "@/components/ui/use-toast"
 import { Upload, CheckCircle2, Loader2, ChevronLeft, ChevronRight, Moon, Sun, ChevronDown } from "lucide-react"
+import { saveStep1 } from "./save-step"
 
 interface Service {
   id: string
@@ -39,6 +40,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   const [files, setFiles] = useState<File[]>([])
   const [darkMode, setDarkMode] = useState(false)
   const [optionalDetailsOpen, setOptionalDetailsOpen] = useState(false)
+  const [savedLeadId, setSavedLeadId] = useState<string | null>(null)
   const addressInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
@@ -347,6 +349,15 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       return false
     }
     
+    if (!formData.consent_unified) {
+      toast({ 
+        variant: "destructive", 
+        title: "Consent required", 
+        description: "Please agree to be contacted about your project." 
+      })
+      return false
+    }
+    
     return true
   }
 
@@ -363,9 +374,54 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     return true
   }
 
-  const handleNext = () => {
-    if (currentStep === 1 && validateStep1()) {
-      setCurrentStep(2)
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      if (!validateStep1()) return
+      
+      // Save Step 1 data to database
+      setLoading(true)
+      try {
+        const result = await saveStep1({
+          referralLinkId,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          consent_unified: formData.consent_unified,
+        })
+
+        if (result.error) {
+          console.error('Error saving Step 1:', result.error)
+          toast({
+            variant: "destructive",
+            title: "Save Error",
+            description: "We couldn't save your information. Please try again.",
+          })
+          setLoading(false)
+          return
+        }
+
+        setSavedLeadId(result.leadId || null)
+        
+        toast({
+          title: "Progress Saved ✓",
+          description: "Your contact information has been saved.",
+        })
+        
+        setCurrentStep(2)
+      } catch (error) {
+        console.error('Error saving Step 1:', error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+        })
+      } finally {
+        setLoading(false)
+      }
     } else if (currentStep === 2 && validateStep2()) {
       setCurrentStep(3)
     }
@@ -419,28 +475,41 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
 
-      // Insert lead - use sub_service_id if available, otherwise null
-      const { error: insertError } = await supabase
-        .from('leads')
-        .insert({
-          referral_id: referralLinkId,
-          sub_service_id: formData.sub_service_id || null,
-          homeowner_first: firstName,
-          homeowner_last: lastName,
-          homeowner_email: formData.email,
-          homeowner_phone: formData.phone,
-          address_street: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zip: formData.zip,
-          budget_estimate: formData.budget ? parseFloat(formData.budget) : null,
-          timeline: formData.timeline || null,
-          notes: formData.notes,
-          extra_details: extraDetails,
-          stage: 'submitted',
-        })
+      const fullLeadData = {
+        referral_id: referralLinkId,
+        sub_service_id: formData.sub_service_id || null,
+        homeowner_first: firstName,
+        homeowner_last: lastName,
+        homeowner_email: formData.email,
+        homeowner_phone: formData.phone,
+        address_street: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip: formData.zip,
+        budget_estimate: formData.budget ? parseFloat(formData.budget) : null,
+        timeline: formData.timeline || null,
+        notes: formData.notes,
+        extra_details: extraDetails,
+        stage: 'submitted',
+        completion_status: 'submitted', // Mark as fully complete
+      }
 
-      if (insertError) throw insertError
+      if (savedLeadId) {
+        // Update the existing partial lead with full details
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update(fullLeadData)
+          .eq('id', savedLeadId)
+
+        if (updateError) throw updateError
+      } else {
+        // Fallback: Insert new lead if Step 1 save somehow failed
+        const { error: insertError } = await supabase
+          .from('leads')
+          .insert(fullLeadData)
+
+        if (insertError) throw insertError
+      }
 
       setSubmitted(true)
       toast({
@@ -591,9 +660,43 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 </div>
               </div>
 
-              <Button type="button" onClick={handleNext} className="w-full h-12 sm:h-11 text-base" size="lg">
-                Next: Project Details
-                <ChevronRight className="ml-2 h-4 w-4" />
+              {/* Consent Section */}
+              <div className="space-y-3 pt-4 border-t">
+                <h4 className="font-semibold text-sm sm:text-base">Communication Consent</h4>
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="consent_unified_step1"
+                    checked={formData.consent_unified}
+                    onCheckedChange={(checked) => 
+                      setFormData({ ...formData, consent_unified: checked as boolean })
+                    }
+                    required
+                    className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
+                  />
+                  <Label htmlFor="consent_unified_step1" className="text-sm font-normal leading-tight cursor-pointer">
+                    I agree to be contacted about my project via email, text, and phone. By providing my contact information, I understand it will be saved even if I don&apos;t complete this form. *
+                  </Label>
+                </div>
+              </div>
+
+              <Button 
+                type="button" 
+                onClick={handleNext} 
+                disabled={loading}
+                className="w-full h-12 sm:h-11 text-base" 
+                size="lg"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Next: Project Details
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           )}
@@ -798,24 +901,14 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
               </div>
 
               <div className="space-y-4">
-                <h3 className="font-semibold text-base sm:text-lg">Consent & Agreements</h3>
+                <h3 className="font-semibold text-base sm:text-lg">Terms & Conditions</h3>
                 
                 <div className="space-y-3.5">
-                  <div className="flex items-start space-x-3 sm:space-x-2">
-                    <Checkbox
-                      id="consent_unified"
-                      checked={formData.consent_unified}
-                      onCheckedChange={(checked) => 
-                        setFormData({ ...formData, consent_unified: checked as boolean })
-                      }
-                      className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
-                    />
-                    <Label htmlFor="consent_unified" className="text-sm sm:text-base font-normal leading-tight cursor-pointer">
-                      I agree to receive project updates via email, text, and phone
-                    </Label>
+                  <div className="bg-muted/50 p-4 rounded-lg text-sm text-muted-foreground">
+                    <p>✓ You&apos;ve already agreed to receive project updates via email, text, and phone.</p>
                   </div>
 
-                  <div className="flex items-start space-x-3 sm:space-x-2 pt-2 border-t">
+                  <div className="flex items-start space-x-3 sm:space-x-2">
                     <Checkbox
                       id="consent_terms"
                       checked={formData.consent_terms}
