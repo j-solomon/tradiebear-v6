@@ -406,11 +406,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
         setSavedLeadId(result.leadId || null)
         
-        toast({
-          title: "Progress Saved ✓",
-          description: "Your contact information has been saved.",
-        })
-        
         setCurrentStep(2)
       } catch (error) {
         console.error('Error saving Step 1:', error)
