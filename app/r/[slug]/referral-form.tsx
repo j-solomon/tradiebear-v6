@@ -674,7 +674,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                     className="mt-0.5 h-5 w-5 sm:h-4 sm:w-4"
                   />
                   <Label htmlFor="consent_unified_step1" className="text-sm font-normal leading-tight cursor-pointer">
-                    I agree to be contacted about my project via email, text, and phone. By providing my contact information, I understand it will be saved even if I don&apos;t complete this form. *
+                    I agree to be contacted about my project. *
                   </Label>
                 </div>
               </div>

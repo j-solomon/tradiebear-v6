@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/client'
+import { createServiceClient } from '@/lib/supabase/server'
 
 interface SaveStep1Data {
   referralLinkId: string
@@ -15,7 +15,7 @@ interface SaveStep1Data {
 }
 
 export async function saveStep1(data: SaveStep1Data) {
-  const supabase = createClient()
+  const supabase = createServiceClient()
   
   const nameParts = data.name.trim().split(' ')
   const firstName = nameParts[0] || ''
