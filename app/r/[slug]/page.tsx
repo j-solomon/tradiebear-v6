@@ -70,7 +70,7 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
           </p>
           {referralLink.profiles && (
             <p className="text-sm text-muted-foreground">
-              Trusted referral from <span className="font-semibold text-foreground">{referralLink.profiles.name || referralLink.profiles.handle}</span>
+              Referred by <span className="font-semibold text-foreground">{referralLink.profiles.name || referralLink.profiles.handle}</span>
             </p>
           )}
         </div>

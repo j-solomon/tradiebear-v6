@@ -113,6 +113,12 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     consent_terms: false,
   })
 
+  // Initialize dark mode based on system preference
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains('dark')
+    setDarkMode(isDark)
+  }, [])
+
   // Apply dark mode class to document
   useEffect(() => {
     if (darkMode) {
@@ -614,7 +620,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
           {currentStep === 1 && (
             <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-base font-medium">Full Name *</Label>
+                <Label htmlFor="name" className="text-base font-medium">Full Name <span className="text-xs">*</span></Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -626,7 +632,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-base font-medium">Email Address *</Label>
+                <Label htmlFor="email" className="text-base font-medium">Email Address <span className="text-xs">*</span></Label>
                 <Input
                   id="email"
                   type="email"
@@ -639,7 +645,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone" className="text-base font-medium">Phone Number *</Label>
+                <Label htmlFor="phone" className="text-base font-medium">Phone Number <span className="text-xs">*</span></Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -652,10 +658,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
               </div>
 
               <div className="space-y-4 pt-2">
-                <h3 className="font-semibold text-base">Property Address</h3>
-                
                 <div className="space-y-2">
-                  <Label htmlFor="address" className="text-base font-medium">Street Address *</Label>
+                  <Label htmlFor="address" className="text-base font-medium">Street Address <span className="text-xs">*</span></Label>
                   <Input
                     ref={addressInputRef}
                     id="address"
@@ -670,28 +674,23 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="zip" className="text-base font-medium">ZIP Code *</Label>
-                    <Input
-                      id="zip"
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={5}
-                      value={formData.zip}
-                      onChange={handleZipChange}
-                      placeholder="97201"
-                      className="h-12 text-base"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-base font-medium">City / State</Label>
-                    <div className="h-12 px-3 bg-muted rounded-md flex items-center text-sm text-muted-foreground">
-                      {formData.city && formData.state 
-                        ? `${formData.city}, ${formData.state}` 
-                        : 'Auto-filled'}
-                    </div>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zip" className="text-base font-medium">ZIP Code <span className="text-xs">*</span></Label>
+                  <Input
+                    id="zip"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={formData.zip}
+                    onChange={handleZipChange}
+                    placeholder="97201"
+                    className="h-12 text-base"
+                  />
+                  {formData.city && formData.state && (
+                    <p className="text-xs text-muted-foreground">
+                      📍 {formData.city}, {formData.state}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -708,15 +707,9 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                     className="mt-0.5 h-5 w-5"
                   />
                   <Label htmlFor="consent" className="text-sm leading-tight cursor-pointer font-normal">
-                    I agree to be contacted about my project. *
+                    I agree to be contacted about my project. <span className="text-xs">*</span>
                   </Label>
                 </div>
-                <p className="text-xs text-muted-foreground pl-8">
-                  By continuing, you agree to our{' '}
-                  <a href="/terms" className="underline hover:text-foreground">Terms</a>
-                  {' '}and{' '}
-                  <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>.
-                </p>
               </div>
 
               <Button 
