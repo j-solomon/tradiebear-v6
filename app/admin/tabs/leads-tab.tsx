@@ -195,7 +195,9 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{lead.sub_service?.name || 'N/A'}</div>
+                          <div className="font-medium">
+                            {lead.sub_service?.name || (lead.extra_details?.service_id ? 'General Service' : 'N/A')}
+                          </div>
                           {lead.sub_service?.service?.name && (
                             <div className="text-xs text-muted-foreground">{lead.sub_service.service.name}</div>
                           )}
@@ -265,11 +267,15 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                                 </div>
                                 <div>
                                   <Label>Service Category</Label>
-                                  <p className="text-sm">{lead.sub_service?.service?.name || 'N/A'}</p>
+                                  <p className="text-sm">
+                                    {lead.sub_service?.service?.name || (lead.extra_details?.service_id ? 'Service Selected' : 'N/A')}
+                                  </p>
                                 </div>
                                 <div className="col-span-2">
                                   <Label>Specific Service</Label>
-                                  <p className="text-sm font-medium">{lead.sub_service?.name || 'N/A'}</p>
+                                  <p className="text-sm font-medium">
+                                    {lead.sub_service?.name || (lead.extra_details?.service_id ? 'General Service' : 'N/A')}
+                                  </p>
                                   {lead.sub_service?.description && (
                                     <p className="text-xs text-muted-foreground">{lead.sub_service.description}</p>
                                   )}
