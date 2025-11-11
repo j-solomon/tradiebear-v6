@@ -43,8 +43,15 @@ interface Lead {
   extra_details?: any
 }
 
+interface Service {
+  id: string
+  name: string
+  slug: string
+}
+
 interface LeadsTabProps {
   initialLeads: Lead[]
+  services: Service[]
 }
 
 const STAGE_OPTIONS = [
@@ -65,12 +72,19 @@ const STAGE_COLORS: Record<string, string> = {
   lost: "bg-gray-500",
 }
 
-export default function LeadsTab({ initialLeads }: LeadsTabProps) {
+export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [stageFilter, setStageFilter] = useState<string>("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const { toast } = useToast()
+
+  // Helper function to get service name by ID
+  const getServiceNameById = (serviceId: string | null | undefined): string | null => {
+    if (!serviceId) return null
+    const service = services.find(s => s.id === serviceId)
+    return service?.name || null
+  }
 
   const filteredLeads = leads.filter((lead) => {
     const matchesStage = stageFilter === "all" || lead.stage === stageFilter
@@ -196,7 +210,7 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                       <TableCell>
                         <div>
                           <div className="font-medium">
-                            {lead.sub_service?.name || (lead.extra_details?.service_id ? 'General Service' : 'N/A')}
+                            {lead.sub_service?.name || getServiceNameById(lead.extra_details?.service_id) || 'N/A'}
                           </div>
                           {lead.sub_service?.service?.name && (
                             <div className="text-xs text-muted-foreground">{lead.sub_service.service.name}</div>
@@ -268,13 +282,13 @@ export default function LeadsTab({ initialLeads }: LeadsTabProps) {
                                 <div>
                                   <Label>Service Category</Label>
                                   <p className="text-sm">
-                                    {lead.sub_service?.service?.name || (lead.extra_details?.service_id ? 'Service Selected' : 'N/A')}
+                                    {lead.sub_service?.service?.name || getServiceNameById(lead.extra_details?.service_id) || 'N/A'}
                                   </p>
                                 </div>
                                 <div className="col-span-2">
                                   <Label>Specific Service</Label>
                                   <p className="text-sm font-medium">
-                                    {lead.sub_service?.name || (lead.extra_details?.service_id ? 'General Service' : 'N/A')}
+                                    {lead.sub_service?.name || (lead.extra_details?.service_id ? getServiceNameById(lead.extra_details?.service_id) || 'N/A' : 'N/A')}
                                   </p>
                                   {lead.sub_service?.description && (
                                     <p className="text-xs text-muted-foreground">{lead.sub_service.description}</p>

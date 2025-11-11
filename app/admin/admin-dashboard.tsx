@@ -80,7 +80,7 @@ export default function AdminDashboard({
           </TabsList>
 
           <TabsContent value="leads" className="mt-6">
-            <LeadsTab initialLeads={initialLeads} />
+            <LeadsTab initialLeads={initialLeads} services={initialServices} />
           </TabsContent>
 
           <TabsContent value="referrals" className="mt-6">
