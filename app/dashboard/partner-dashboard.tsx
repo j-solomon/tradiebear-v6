@@ -85,19 +85,24 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Partner Dashboard</h1>
-              <p className="text-sm text-muted-foreground">
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-start sm:items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold truncate">Partner Dashboard</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                 Welcome back, {profile.name}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <ThemeToggle />
-              <Button variant="outline" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
+              <Button 
+                variant="outline" 
+                onClick={handleSignOut}
+                size="sm"
+                className="h-9 sm:h-10"
+              >
+                <LogOut className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Sign Out</span>
               </Button>
             </div>
           </div>
@@ -105,7 +110,7 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 space-y-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* Referral Link Card */}
         {referralLink ? (
           <Card>
@@ -166,7 +171,7 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
         )}
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Clicks</CardTitle>
@@ -244,7 +249,7 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
                 )}
               </div>
             ) : (
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
