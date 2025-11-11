@@ -96,6 +96,12 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   const addressInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
 
+  // Version check - log to console to verify deployment
+  useEffect(() => {
+    console.log('🚀 Referral Form Version: 2.1.0 - Service ID Fix Deployed')
+    console.log('📦 Build Time:', new Date().toISOString())
+  }, [])
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -470,6 +476,15 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         budget_range: formData.budget || null,
         service_id: formData.service_id || null
       }
+
+      // Debug logging
+      console.log('📋 Form Submission Data:', {
+        service_id: formData.service_id,
+        sub_service_id: formData.sub_service_id,
+        budget: formData.budget,
+        timeline: formData.timeline,
+        extraDetails
+      })
 
       const nameParts = formData.name.trim().split(' ')
       const firstName = nameParts[0] || ''
