@@ -62,13 +62,6 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 py-6 sm:py-12 px-3 sm:px-4">
       <div className="max-w-3xl mx-auto">
         <div className="mb-6 sm:mb-8 text-center px-2">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary rounded-full text-xs sm:text-sm font-medium mb-4">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            One simple form
-          </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 leading-tight">
             Get Your Free Estimate
           </h1>
