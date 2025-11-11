@@ -116,28 +116,34 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-2 p-4 bg-muted rounded-lg">
-                <code className="flex-1 text-sm font-mono">
-                  {origin ? `${origin}/r/${referralLink.slug}` : 'Loading...'}
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyReferralLink}
-                  disabled={!origin}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => origin && window.open(`/r/${referralLink.slug}`, '_blank')}
-                  disabled={!origin}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Open
-                </Button>
+              <div className="space-y-3">
+                {/* Link Display */}
+                <div className="p-4 bg-muted rounded-lg">
+                  <code className="block text-sm sm:text-base font-mono break-all">
+                    {origin ? `${origin}/r/${referralLink.slug}` : 'Loading...'}
+                  </code>
+                </div>
+                
+                {/* Action Buttons - Stacked on mobile, horizontal on desktop */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                  <Button
+                    onClick={copyReferralLink}
+                    disabled={!origin}
+                    className="w-full sm:flex-1 h-12 sm:h-10 text-base sm:text-sm font-semibold"
+                  >
+                    <Copy className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
+                    Copy Link
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => origin && window.open(`/r/${referralLink.slug}`, '_blank')}
+                    disabled={!origin}
+                    className="w-full sm:flex-1 h-12 sm:h-10 text-base sm:text-sm"
+                  >
+                    <ExternalLink className="h-5 w-5 sm:h-4 sm:w-4 mr-2" />
+                    Open Link
+                  </Button>
+                </div>
               </div>
               <div className="bg-muted/50 p-4 rounded-lg">
                 <p className="text-sm font-medium mb-2">How to use your link:</p>
