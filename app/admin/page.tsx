@@ -32,8 +32,6 @@ export default async function AdminPage() {
     metricsData,
     { data: leads },
     { data: services },
-    { data: areas },
-    { data: commissions },
     { data: supportTickets },
     { data: referralLinks },
   ] = await Promise.all([
@@ -57,41 +55,24 @@ export default async function AdminPage() {
       .limit(100),
     supabase
       .from('services')
-      .select('*')
-      .order('name', { ascending: true }),
-    supabase
-      .from('service_area_map')
       .select(`
-        id,
-        state_code,
-        zip_code,
-        created_at,
-        sub_service:sub_services!sub_service_id(
+        *,
+        service_commissions!service_id(
           id,
-          name,
-          slug,
-          description,
-          service:services(name)
+          percentage,
+          created_at
         ),
-        state:geo_states!state_code(
-          code,
-          name
-        ),
-        county:geo_counties!county_id(
-          id,
-          name
-        ),
-        city:geo_cities!city_id(
-          id,
-          name
+        sub_services(
+          *,
+          service_commissions!sub_service_id(
+            id,
+            percentage,
+            created_at
+          )
         )
       `)
-      .order('sub_service_id', { ascending: true })
-      .order('zip_code', { ascending: true }),
-    supabase
-      .from('commission_tiers')
-      .select('*')
-      .order('min_amount'),
+      .eq('active', true)
+      .order('name', { ascending: true }),
     supabase
       .from('support_tickets')
       .select('*')
@@ -128,8 +109,6 @@ export default async function AdminPage() {
       metricsData={metricsData}
       initialLeads={leads || []}
       initialServices={services || []}
-      initialAreas={areas || []}
-      initialCommissions={commissions || []}
       initialTickets={supportTickets || []}
       initialReferralLinks={referralLinks || []}
       userEmail={user.email || ''}

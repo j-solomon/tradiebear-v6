@@ -108,6 +108,31 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
     return service?.name || null
   }
 
+  // Helper function to get commission data for a lead
+  const getCommissionData = (lead: Lead) => {
+    // Try to get sub-service specific commission
+    const subServiceCommission = services
+      .flatMap((s: any) => s.sub_services || [])
+      .find((ss: any) => ss.id === lead.sub_service?.id)
+      ?.service_commissions?.[0]?.percentage
+
+    if (subServiceCommission !== undefined) {
+      return { percentage: subServiceCommission, inherited: false }
+    }
+
+    // Fallback to service-level commission
+    const serviceCommission = services
+      .find((s: any) => s.id === lead.sub_service?.service?.id || s.id === lead.extra_details?.service_id)
+      ?.service_commissions?.[0]?.percentage
+
+    if (serviceCommission !== undefined) {
+      return { percentage: serviceCommission, inherited: true }
+    }
+
+    // Default fallback
+    return { percentage: 10, inherited: false }
+  }
+
   // Function to get signed URL for images
   const getImageUrl = async (filename: string): Promise<string | null> => {
     const supabase = createClient()
@@ -529,6 +554,32 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                                   </p>
                                 </div>
                               </div>
+
+                              {/* Commission Info */}
+                              {lead.budget_estimate && (
+                                <div className="bg-green-50 dark:bg-green-950 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <Label className="text-green-700 dark:text-green-300">Commission Rate</Label>
+                                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                        {getCommissionData(lead).percentage}%
+                                        {getCommissionData(lead).inherited && (
+                                          <span className="text-xs font-normal text-muted-foreground ml-2">(inherited)</span>
+                                        )}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <Label className="text-green-700 dark:text-green-300">Estimated Earnings</Label>
+                                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                        ${((lead.budget_estimate * getCommissionData(lead).percentage) / 100).toFixed(2)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Based on ${lead.budget_estimate.toFixed(2)} budget
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
 
                               {/* Notes - Always shown */}
                               <div>
