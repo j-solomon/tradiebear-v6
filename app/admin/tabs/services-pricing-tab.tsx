@@ -989,6 +989,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     })
   }
 
+  // Component render
   return (
     <Card>
       <CardHeader>
