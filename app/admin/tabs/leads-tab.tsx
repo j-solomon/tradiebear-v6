@@ -599,6 +599,7 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                             </div>
                           </DialogContent>
                         </Dialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
