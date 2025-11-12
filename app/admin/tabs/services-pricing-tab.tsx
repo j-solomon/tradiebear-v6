@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -59,6 +59,26 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
+  // Area management state
+  const [manageAreasDialogOpen, setManageAreasDialogOpen] = useState(false)
+  const [selectedSubServiceForAreas, setSelectedSubServiceForAreas] = useState<{
+    subServiceId: string
+    subServiceName: string
+    serviceId: string
+    serviceName: string
+  } | null>(null)
+  const [availableStates, setAvailableStates] = useState<Array<{id: string, name: string, code: string}>>([])
+  const [availableCities, setAvailableCities] = useState<Array<{id: string, name: string, state_id: string}>>([])
+  const [serviceAreas, setServiceAreas] = useState<Array<{
+    id: string
+    area_type: 'service_default' | 'sub_service_inclusion' | 'sub_service_exclusion'
+    state_code?: string
+    city_id?: string
+    city_name?: string
+    area_source: 'inherited' | 'added' | 'excluded'
+  }>>([])
+  const [loadingAreas, setLoadingAreas] = useState(false)
+
   const [serviceForm, setServiceForm] = useState({
     name: "",
     description: "",
@@ -70,6 +90,19 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     slug: "",
     description: "",
   })
+
+  // Load geographic data on mount
+  useEffect(() => {
+    const loadGeographicData = async () => {
+      const supabase = createClient()
+      const { data: states } = await supabase.from('states').select('id, name, code').order('name')
+      const { data: cities } = await supabase.from('cities').select('id, name, state_id').order('name')
+      
+      if (states) setAvailableStates(states)
+      if (cities) setAvailableCities(cities)
+    }
+    loadGeographicData()
+  }, [])
 
   const toggleServiceExpanded = (serviceId: string) => {
     const newExpanded = new Set(expandedServices)
@@ -552,6 +585,125 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     })
   }
 
+  const openManageAreasDialog = async (subServiceId: string, subServiceName: string, serviceId: string, serviceName: string) => {
+    setSelectedSubServiceForAreas({ subServiceId, subServiceName, serviceId, serviceName })
+    setLoadingAreas(true)
+    setManageAreasDialogOpen(true)
+    
+    const supabase = createClient()
+    
+    // Fetch direct areas for this sub-service
+    const { data: directAreas } = await supabase
+      .from('service_area_map')
+      .select('id, area_type, state_code, city_id, cities(name)')
+      .eq('sub_service_id', subServiceId)
+    
+    // Fetch service-level default areas
+    const { data: serviceDefaultAreas } = await supabase
+      .from('service_area_map')
+      .select('id, area_type, state_code, city_id, cities(name)')
+      .eq('service_id', serviceId)
+      .eq('area_type', 'service_default')
+    
+    // Combine and format areas
+    const formattedAreas = [
+      ...(serviceDefaultAreas || []).map(area => ({
+        id: area.id,
+        area_type: 'service_default' as const,
+        state_code: area.state_code,
+        city_id: area.city_id,
+        city_name: (area.cities as any)?.name,
+        area_source: 'inherited' as const,
+      })),
+      ...(directAreas || []).map(area => ({
+        id: area.id,
+        area_type: area.area_type as 'sub_service_inclusion' | 'sub_service_exclusion',
+        state_code: area.state_code,
+        city_id: area.city_id,
+        city_name: (area.cities as any)?.name,
+        area_source: area.area_type === 'sub_service_inclusion' ? 'added' as const : 'excluded' as const,
+      })),
+    ]
+    
+    setServiceAreas(formattedAreas)
+    setLoadingAreas(false)
+  }
+
+  const handleAddArea = async (cityId: string, areaType: 'sub_service_inclusion' | 'sub_service_exclusion') => {
+    if (!selectedSubServiceForAreas) return
+    
+    const supabase = createClient()
+    const city = availableCities.find(c => c.id === cityId)
+    const state = availableStates.find(s => s.id === city?.state_id)
+    
+    const { data, error } = await supabase
+      .from('service_area_map')
+      .insert({
+        sub_service_id: selectedSubServiceForAreas.subServiceId,
+        area_type: areaType,
+        city_id: cityId,
+        state_code: state?.code,
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Add area error:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add area.",
+      })
+      return
+    }
+    
+    // Reload areas
+    await openManageAreasDialog(
+      selectedSubServiceForAreas.subServiceId,
+      selectedSubServiceForAreas.subServiceName,
+      selectedSubServiceForAreas.serviceId,
+      selectedSubServiceForAreas.serviceName
+    )
+    
+    toast({
+      title: "Success",
+      description: `Area ${areaType === 'sub_service_inclusion' ? 'added' : 'excluded'}.`,
+    })
+  }
+
+  const handleRemoveArea = async (areaId: string) => {
+    if (!selectedSubServiceForAreas) return
+    
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('service_area_map')
+      .delete()
+      .eq('id', areaId)
+    
+    if (error) {
+      console.error('Remove area error:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove area.",
+      })
+      return
+    }
+    
+    // Reload areas
+    await openManageAreasDialog(
+      selectedSubServiceForAreas.subServiceId,
+      selectedSubServiceForAreas.subServiceName,
+      selectedSubServiceForAreas.serviceId,
+      selectedSubServiceForAreas.serviceName
+    )
+    
+    toast({
+      title: "Success",
+      description: "Area removed.",
+    })
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -723,7 +875,16 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                                     )}
                                   </TableCell>
                                   <TableCell>
-                                    <Button variant="outline" size="sm" disabled>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => openManageAreasDialog(
+                                        subService.id,
+                                        subService.name,
+                                        service.id,
+                                        service.name
+                                      )}
+                                    >
                                       <MapPin className="mr-1 h-3 w-3" />
                                       Manage
                                     </Button>
@@ -874,6 +1035,131 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
               <Button onClick={handleSaveSubService} disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingSubService ? 'Update' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Area Management Dialog */}
+        <Dialog open={manageAreasDialogOpen} onOpenChange={setManageAreasDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Manage Service Areas: {selectedSubServiceForAreas?.subServiceName}
+              </DialogTitle>
+              <DialogDescription>
+                Service areas are inherited from &quot;{selectedSubServiceForAreas?.serviceName}&quot;. 
+                You can add additional areas or exclude inherited ones.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {loadingAreas ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-6 py-4">
+                {/* Add Area Section */}
+                <div className="space-y-3">
+                  <Label>Add Area</Label>
+                  <div className="flex gap-2">
+                    <select 
+                      className="flex-1 rounded-md border px-3 py-2"
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleAddArea(e.target.value, 'sub_service_inclusion')
+                          e.target.value = ''
+                        }
+                      }}
+                    >
+                      <option value="">Select a city to add...</option>
+                      {availableCities.map(city => {
+                        const state = availableStates.find(s => s.id === city.state_id)
+                        return (
+                          <option key={city.id} value={city.id}>
+                            {city.name}, {state?.code}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Current Areas */}
+                <div className="space-y-3">
+                  <Label>Current Service Areas</Label>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Source</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {serviceAreas.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                              No service areas configured yet.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          serviceAreas.map((area) => (
+                            <TableRow key={area.id}>
+                              <TableCell>
+                                {area.city_name || availableCities.find(c => c.id === area.city_id)?.name || 'Unknown'}, {area.state_code}
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={
+                                    area.area_source === 'inherited' ? 'secondary' : 
+                                    area.area_source === 'added' ? 'default' : 
+                                    'destructive'
+                                  }
+                                >
+                                  {area.area_source === 'inherited' && 'Inherited'}
+                                  {area.area_source === 'added' && 'Added'}
+                                  {area.area_source === 'excluded' && 'Excluded'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {area.area_source === 'inherited' ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      // Create exclusion
+                                      if (area.city_id) {
+                                        handleAddArea(area.city_id, 'sub_service_exclusion')
+                                      }
+                                    }}
+                                  >
+                                    Exclude
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveArea(area.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button onClick={() => setManageAreasDialogOpen(false)}>
+                Done
               </Button>
             </DialogFooter>
           </DialogContent>
