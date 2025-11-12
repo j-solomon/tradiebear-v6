@@ -153,7 +153,7 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
               <div className="bg-muted/50 p-4 rounded-lg">
                 <p className="text-sm font-medium mb-2">How to use your link:</p>
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Share it on your website, social media, or business cards</li>
+                  <li>Share it on your website, social media, business cards or directly with homeowners</li>
                   <li>When homeowners click and submit the form, they&apos;re automatically attributed to you</li>
                   <li>Track all your referrals and commissions right here in your dashboard</li>
                 </ul>
