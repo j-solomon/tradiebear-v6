@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminDashboard from './admin-dashboard'
+import { getAllMetrics } from './components/metrics/metrics-queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,8 +27,9 @@ export default async function AdminPage() {
 
   const userRole = profile?.role || 'partner'
 
-  // Fetch initial data
+  // Fetch initial data including metrics
   const [
+    metricsData,
     { data: leads },
     { data: services },
     { data: areas },
@@ -35,6 +37,7 @@ export default async function AdminPage() {
     { data: supportTickets },
     { data: referralLinks },
   ] = await Promise.all([
+    getAllMetrics(supabase),
     supabase
       .from('leads')
       .select(`
@@ -122,6 +125,7 @@ export default async function AdminPage() {
 
   return (
     <AdminDashboard
+      metricsData={metricsData}
       initialLeads={leads || []}
       initialServices={services || []}
       initialAreas={areas || []}

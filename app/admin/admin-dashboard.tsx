@@ -13,9 +13,24 @@ import AreasTab from "./tabs/areas-tab"
 import CommissionsTab from "./tabs/commissions-tab"
 import SupportTab from "./tabs/support-tab"
 import ReferralLinksTab from "./tabs/referral-links-tab"
+import MetricsOverview from "./components/metrics/metrics-overview"
 import { ReferralLink } from "@/types/database"
 
+interface MetricData {
+  value: string | number
+  change: number
+  changeLabel: string
+}
+
 interface AdminDashboardProps {
+  metricsData: {
+    dau: MetricData
+    pendingLeads: MetricData
+    closedLeads: MetricData
+    newLeads: MetricData
+    conversionRate: MetricData
+    revenue: MetricData
+  }
   initialLeads: any[]
   initialServices: any[]
   initialAreas: any[]
@@ -27,6 +42,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({
+  metricsData,
   initialLeads,
   initialServices,
   initialAreas,
@@ -69,6 +85,9 @@ export default function AdminDashboard({
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
+        {/* Metrics Overview */}
+        <MetricsOverview metrics={metricsData} />
+        
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-4xl grid-cols-6">
             <TabsTrigger value="leads">Leads</TabsTrigger>

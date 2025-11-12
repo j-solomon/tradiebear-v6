@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 import { Eye, Search, Loader2 } from "lucide-react"
+import LeadSearchFilters, { LeadFilters } from "../components/leads/lead-search-filters"
+import { applyLeadFilters } from "../components/leads/lead-filters"
 
 interface Lead {
   id: string
@@ -74,8 +76,13 @@ const STAGE_COLORS: Record<string, string> = {
 
 export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
-  const [stageFilter, setStageFilter] = useState<string>("all")
-  const [searchTerm, setSearchTerm] = useState("")
+  const [filters, setFilters] = useState<LeadFilters>({
+    searchTerm: "",
+    stage: "all",
+    serviceId: "all",
+    referrerId: "all",
+    dateRange: "all"
+  })
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({})
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
@@ -120,21 +127,49 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
     }
   }, [selectedLead])
 
-  const filteredLeads = leads.filter((lead) => {
-    const matchesStage = stageFilter === "all" || lead.stage === stageFilter
-    const matchesSearch = 
-      lead.homeowner_first?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.homeowner_last?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.homeowner_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.homeowner_phone?.includes(searchTerm)
-    return matchesStage && matchesSearch
-  })
+  // Apply filters using the new filtering system
+  const filteredLeads = applyLeadFilters(leads, filters)
+  
+  // Prepare referrers list for filter dropdown
+  const referrers = Array.from(
+    new Set(
+      leads
+        .filter(lead => lead.referral_link?.profiles?.name)
+        .map(lead => ({
+          id: lead.referral_link?.slug || '',
+          name: lead.referral_link?.profiles?.name || ''
+        }))
+        .map(r => JSON.stringify(r))
+    )
+  ).map(str => JSON.parse(str))
 
   const updateLeadStage = async (leadId: string, newStage: string) => {
     const supabase = createClient()
+    
+    // Prepare update object with stage and appropriate timestamp
+    const updateData: any = { stage: newStage }
+    const now = new Date().toISOString()
+    
+    // Set timestamp based on stage change
+    switch (newStage) {
+      case 'contacted':
+        updateData.contacted_at = now
+        break
+      case 'qualified':
+        updateData.qualified_at = now
+        break
+      case 'quoted':
+        updateData.quoted_at = now
+        break
+      case 'won':
+      case 'lost':
+        updateData.closed_at = now
+        break
+    }
+    
     const { error } = await supabase
       .from('leads')
-      .update({ stage: newStage })
+      .update(updateData)
       .eq('id', leadId)
 
     if (error) {
@@ -179,33 +214,12 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, email, or phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <Select value={stageFilter} onValueChange={setStageFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filter by stage" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stages</SelectItem>
-                {STAGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Search and Filters */}
+          <LeadSearchFilters
+            services={services}
+            referrers={referrers}
+            onFiltersChange={setFilters}
+          />
 
           {/* Table */}
           <div className="rounded-md border">

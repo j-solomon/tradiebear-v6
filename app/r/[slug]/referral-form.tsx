@@ -14,6 +14,7 @@ import { Upload, CheckCircle2, Loader2, ChevronRight, Moon, Sun, ChevronDown, Ed
 import { saveStep1 } from "./save-step"
 import { logFormError } from "./error-logger"
 import { submitFinalLead } from "./submit-final"
+import { trackPageView } from "./track-view"
 
 interface Service {
   id: string
@@ -103,6 +104,26 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     console.log('🚀 Referral Form Version: 2.1.0 - Service ID Fix Deployed')
     console.log('📦 Build Time:', new Date().toISOString())
   }, [])
+
+  // Track page view for analytics and DAU metrics
+  useEffect(() => {
+    const trackView = async () => {
+      try {
+        const userAgent = typeof window !== 'undefined' ? window.navigator.userAgent : undefined
+        await trackPageView({
+          referralLinkId,
+          pageType: 'referral_form',
+          userAgent
+        })
+        console.log('📊 Page view tracked for referral:', referralLinkId)
+      } catch (error) {
+        // Silent failure - don't block user experience
+        console.error('Failed to track page view:', error)
+      }
+    }
+    
+    trackView()
+  }, [referralLinkId])
 
   const [formData, setFormData] = useState({
     name: "",
