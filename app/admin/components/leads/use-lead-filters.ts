@@ -14,9 +14,13 @@ interface Lead {
   stage: string
   created_at: string
   sub_service?: { 
+    id: string
     name: string
     description?: string
-    service?: { name: string }
+    service?: { 
+      id: string
+      name: string 
+    }
   }
   referral_link?: {
     slug: string
