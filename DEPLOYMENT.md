@@ -126,7 +126,7 @@ CREATE TABLE services (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   description TEXT,
-  is_active BOOLEAN DEFAULT true,
+  active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -135,7 +135,7 @@ ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 CREATE POLICY "Anyone can view active services" ON services
-  FOR SELECT USING (is_active = true);
+  FOR SELECT USING (active = true);
 
 CREATE POLICY "Admins can manage services" ON services
   FOR ALL USING (
@@ -311,7 +311,7 @@ WHERE email = 'your-admin-email@example.com';
 
 #### Add Sample Services
 ```sql
-INSERT INTO services (name, description, is_active) VALUES
+INSERT INTO services (name, description, active) VALUES
 ('Plumbing', 'Residential and commercial plumbing services', true),
 ('Electrical', 'Licensed electrical work and repairs', true),
 ('HVAC', 'Heating, ventilation, and air conditioning', true),
