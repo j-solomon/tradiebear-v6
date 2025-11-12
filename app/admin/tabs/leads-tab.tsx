@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -90,6 +91,9 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [leadToDelete, setLeadToDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null)
+  const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
   // Wrap setFilters in useCallback to prevent unnecessary re-renders
@@ -236,6 +240,88 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
       })
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const updateLead = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!leadToEdit) return
+
+    setSaving(true)
+    const supabase = createClient()
+
+    try {
+      const formData = new FormData(e.target as HTMLFormElement)
+      const nameParts = (formData.get('name') as string).trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
+      const updateData = {
+        homeowner_first: firstName,
+        homeowner_last: lastName,
+        homeowner_email: formData.get('email') as string,
+        homeowner_phone: formData.get('phone') as string,
+        address_street: formData.get('address') as string,
+        city: formData.get('city') as string,
+        state: formData.get('state') as string,
+        zip: formData.get('zip') as string,
+        timeline: formData.get('timeline') as string,
+        notes: formData.get('notes') as string,
+        extra_details: {
+          ...leadToEdit.extra_details,
+          budget_range: formData.get('budget') as string,
+        }
+      }
+
+      const { error } = await supabase
+        .from('leads')
+        .update(updateData)
+        .eq('id', leadToEdit.id)
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to update lead.",
+        })
+        return
+      }
+
+      // Update lead in state
+      setLeads(leads.map(lead => 
+        lead.id === leadToEdit.id 
+          ? { 
+              ...lead, 
+              homeowner_first: firstName,
+              homeowner_last: lastName,
+              homeowner_email: updateData.homeowner_email,
+              homeowner_phone: updateData.homeowner_phone,
+              address_street: updateData.address_street,
+              city: updateData.city,
+              state: updateData.state,
+              zip: updateData.zip,
+              timeline: updateData.timeline,
+              notes: updateData.notes,
+              extra_details: updateData.extra_details
+            } 
+          : lead
+      ))
+
+      toast({
+        title: "Success",
+        description: "Lead updated successfully.",
+      })
+
+      setEditDialogOpen(false)
+      setLeadToEdit(null)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while updating the lead.",
+      })
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -489,6 +575,16 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
+                            setLeadToEdit(lead)
+                            setEditDialogOpen(true)
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
                             setLeadToDelete(lead.id)
                             setDeleteDialogOpen(true)
                           }}
@@ -558,6 +654,148 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Lead Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Lead</DialogTitle>
+            <DialogDescription>
+              Update lead information for {leadToEdit?.homeowner_first} {leadToEdit?.homeowner_last}
+            </DialogDescription>
+          </DialogHeader>
+          {leadToEdit && (
+            <form onSubmit={updateLead} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    defaultValue={`${leadToEdit.homeowner_first || ''} ${leadToEdit.homeowner_last || ''}`}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    defaultValue={leadToEdit.homeowner_email}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    defaultValue={leadToEdit.homeowner_phone}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="budget">Budget Range</Label>
+                  <Input
+                    id="budget"
+                    name="budget"
+                    defaultValue={leadToEdit.extra_details?.budget_range || ''}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  defaultValue={leadToEdit.address_street}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    defaultValue={leadToEdit.city}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    name="state"
+                    defaultValue={leadToEdit.state}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="zip">ZIP</Label>
+                  <Input
+                    id="zip"
+                    name="zip"
+                    defaultValue={leadToEdit.zip}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="timeline">Project Timeline</Label>
+                <Input
+                  id="timeline"
+                  name="timeline"
+                  defaultValue={leadToEdit.timeline || ''}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  defaultValue={leadToEdit.notes || ''}
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={() => {
+                    setEditDialogOpen(false)
+                    setLeadToEdit(null)
+                  }}
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
