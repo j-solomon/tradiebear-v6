@@ -75,6 +75,9 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     state_code?: string
     city_id?: string
     city_name?: string
+    county_id?: string
+    county_name?: string
+    zip_code?: string
     area_source: 'inherited' | 'added' | 'excluded' | 'service'
   }>>([])
   const [loadingAreas, setLoadingAreas] = useState(false)
@@ -600,7 +603,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
         // Fetching for a sub-service - get direct and inherited areas
         const { data, error: directError } = await supabase
           .from('service_area_map')
-          .select('id, area_type, state_code, city_id')
+          .select('id, area_type, state_code, city_id, county_id, zip_code')
           .eq('sub_service_id', subServiceId)
         
         if (directError) {
@@ -612,7 +615,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
         // Fetch service-level default areas (inherited)
         const { data: serviceData, error: serviceError } = await supabase
           .from('service_area_map')
-          .select('id, area_type, state_code, city_id')
+          .select('id, area_type, state_code, city_id, county_id, zip_code')
           .eq('service_id', serviceId)
           .eq('area_type', 'service_default')
           .is('sub_service_id', null)
@@ -626,7 +629,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
         // Fetching for a service - only get service-level areas
         const { data, error: serviceError } = await supabase
           .from('service_area_map')
-          .select('id, area_type, state_code, city_id')
+          .select('id, area_type, state_code, city_id, county_id, zip_code')
           .eq('service_id', serviceId)
           .eq('area_type', 'service_default')
           .is('sub_service_id', null)
@@ -651,29 +654,55 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
       const cityIds = allAreas.map(a => a.city_id).filter(Boolean)
       const { data: cities } = await supabase
         .from('cities')
-        .select('id, name')
+        .select('id, name, county_id')
         .in('id', cityIds)
       
       const cityMap = new Map(cities?.map(c => [c.id, c.name]) || [])
       
-      // Format areas with city names
+      // Fetch county names for all county IDs (both from areas and from cities)
+      const countyIdsFromAreas = allAreas.map(a => a.county_id).filter(Boolean)
+      const countyIdsFromCities = cities?.map(c => c.county_id).filter(Boolean) || []
+      const allCountyIds = [...new Set([...countyIdsFromAreas, ...countyIdsFromCities])]
+      
+      const { data: counties } = await supabase
+        .from('counties')
+        .select('id, name')
+        .in('id', allCountyIds)
+      
+      const countyMap = new Map(counties?.map(c => [c.id, c.name]) || [])
+      
+      // Format areas with full location details
       const formattedAreas = [
-        ...serviceDefaultAreas.map(area => ({
-          id: area.id,
-          area_type: 'service_default' as const,
-          state_code: area.state_code,
-          city_id: area.city_id,
-          city_name: cityMap.get(area.city_id),
-          area_source: subServiceId ? ('inherited' as const) : ('service' as const),
-        })),
-        ...directAreas.map(area => ({
-          id: area.id,
-          area_type: area.area_type as 'sub_service_inclusion' | 'sub_service_exclusion',
-          state_code: area.state_code,
-          city_id: area.city_id,
-          city_name: cityMap.get(area.city_id),
-          area_source: area.area_type === 'sub_service_inclusion' ? 'added' as const : 'excluded' as const,
-        })),
+        ...serviceDefaultAreas.map(area => {
+          const city = cities?.find(c => c.id === area.city_id)
+          const countyId = area.county_id || city?.county_id
+          return {
+            id: area.id,
+            area_type: 'service_default' as const,
+            state_code: area.state_code,
+            city_id: area.city_id,
+            city_name: cityMap.get(area.city_id),
+            county_id: countyId,
+            county_name: countyMap.get(countyId),
+            zip_code: area.zip_code,
+            area_source: subServiceId ? ('inherited' as const) : ('service' as const),
+          }
+        }),
+        ...directAreas.map(area => {
+          const city = cities?.find(c => c.id === area.city_id)
+          const countyId = area.county_id || city?.county_id
+          return {
+            id: area.id,
+            area_type: area.area_type as 'sub_service_inclusion' | 'sub_service_exclusion',
+            state_code: area.state_code,
+            city_id: area.city_id,
+            city_name: cityMap.get(area.city_id),
+            county_id: countyId,
+            county_name: countyMap.get(countyId),
+            zip_code: area.zip_code,
+            area_source: area.area_type === 'sub_service_inclusion' ? 'added' as const : 'excluded' as const,
+          }
+        }),
       ]
       
       console.log('Total formatted areas:', formattedAreas.length)
@@ -746,6 +775,10 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
   const handleRemoveArea = async (areaId: string) => {
     if (!selectedSubServiceForAreas) return
     
+    // Find the area to determine if it's an exclusion or actual removal
+    const area = serviceAreas.find(a => a.id === areaId)
+    const isExclusion = area?.area_source === 'excluded'
+    
     const supabase = createClient()
     const { error } = await supabase
       .from('service_area_map')
@@ -757,7 +790,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to remove area.",
+        description: isExclusion ? "Failed to add back area." : "Failed to remove area.",
       })
       return
     }
@@ -772,7 +805,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     
     toast({
       title: "Success",
-      description: "Area removed.",
+      description: isExclusion ? "Area added back successfully." : "Area removed successfully.",
     })
   }
 
@@ -1157,17 +1190,26 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                         }
                       }}
                     >
-                      <option value="">Select a city to add...</option>
-                      {availableCities.map(city => {
-                        const state = availableStates.find(s => s.id === city.state_id)
-                        return (
-                          <option key={city.id} value={city.id}>
-                            {city.name}, {state?.code}
-                          </option>
-                        )
-                      })}
+                      <option value="">Select a location to add...</option>
+                      {availableCities
+                        .sort((a, b) => {
+                          const stateA = availableStates.find(s => s.id === a.state_id)
+                          const stateB = availableStates.find(s => s.id === b.state_id)
+                          return (stateA?.code || '').localeCompare(stateB?.code || '') || a.name.localeCompare(b.name)
+                        })
+                        .map(city => {
+                          const state = availableStates.find(s => s.id === city.state_id)
+                          return (
+                            <option key={city.id} value={city.id}>
+                              {state?.code} - {city.name}
+                            </option>
+                          )
+                        })}
                     </select>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Select a location to add it to the service area. Note: Full county and ZIP details will be shown after adding.
+                  </p>
                 </div>
                 
                 {/* Current Areas */}
@@ -1177,7 +1219,10 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Location</TableHead>
+                          <TableHead>State</TableHead>
+                          <TableHead>County</TableHead>
+                          <TableHead>City</TableHead>
+                          <TableHead>ZIP Code</TableHead>
                           <TableHead>Source</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -1185,16 +1230,19 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                       <TableBody>
                         {serviceAreas.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                               No service areas configured yet.
                             </TableCell>
                           </TableRow>
                         ) : (
                           serviceAreas.map((area) => (
                             <TableRow key={area.id}>
+                              <TableCell>{area.state_code || 'N/A'}</TableCell>
+                              <TableCell>{area.county_name || 'N/A'}</TableCell>
                               <TableCell>
-                                {area.city_name || availableCities.find(c => c.id === area.city_id)?.name || 'Unknown'}, {area.state_code}
+                                {area.city_name || availableCities.find(c => c.id === area.city_id)?.name || 'Unknown'}
                               </TableCell>
+                              <TableCell>{area.zip_code || 'N/A'}</TableCell>
                               <TableCell>
                                 <Badge 
                                   variant={
@@ -1224,7 +1272,15 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                                   >
                                     Exclude
                                   </Button>
-                                ) : area.area_source === 'service' || area.area_source === 'added' || area.area_source === 'excluded' ? (
+                                ) : area.area_source === 'excluded' ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoveArea(area.id)}
+                                  >
+                                    Add Back
+                                  </Button>
+                                ) : area.area_source === 'service' || area.area_source === 'added' ? (
                                   <Button
                                     variant="ghost"
                                     size="sm"
