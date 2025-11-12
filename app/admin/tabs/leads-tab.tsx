@@ -50,10 +50,24 @@ interface Lead {
   extra_details?: any
 }
 
+interface ServiceCommission {
+  id: string
+  percentage: number
+  created_at: string
+}
+
+interface SubService {
+  id: string
+  name: string
+  service_commissions?: ServiceCommission[]
+}
+
 interface Service {
   id: string
   name: string
   slug: string
+  service_commissions?: ServiceCommission[]
+  sub_services?: SubService[]
 }
 
 interface LeadsTabProps {
