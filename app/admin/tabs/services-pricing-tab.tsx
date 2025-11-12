@@ -182,7 +182,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
             ? {
                 ...s,
                 name: serviceForm.name,
-                description: serviceForm.description || null,
+                description: serviceForm.description || undefined,
                 service_commissions: [{
                   ...s.service_commissions?.[0],
                   id: s.service_commissions?.[0]?.id || '',
@@ -281,7 +281,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                         ...ss,
                         name: subServiceForm.name,
                         slug: subServiceForm.slug || subServiceForm.name.toLowerCase().replace(/\s+/g, '-'),
-                        description: subServiceForm.description || null,
+                        description: subServiceForm.description || undefined,
                       }
                     : ss
                 )
