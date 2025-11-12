@@ -53,13 +53,21 @@ export function applyLeadFilters(leads: Lead[], filters: LeadFilters): Lead[] {
       const email = (lead.homeowner_email || '').toLowerCase()
       const phone = (lead.homeowner_phone || '').toLowerCase()
       const notes = (lead.notes || '').toLowerCase()
+      const referrerName = (lead.referral_link?.profiles?.name || '').toLowerCase()
+      const referrerHandle = (lead.referral_link?.profiles?.handle || '').toLowerCase()
+      const serviceName = (lead.sub_service?.name || '').toLowerCase()
+      const serviceDescription = (lead.sub_service?.description || '').toLowerCase()
 
       return (
         firstName.includes(searchLower) ||
         lastName.includes(searchLower) ||
         email.includes(searchLower) ||
         phone.includes(searchLower) ||
-        notes.includes(searchLower)
+        notes.includes(searchLower) ||
+        referrerName.includes(searchLower) ||
+        referrerHandle.includes(searchLower) ||
+        serviceName.includes(searchLower) ||
+        serviceDescription.includes(searchLower)
       )
     })
   }

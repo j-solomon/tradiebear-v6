@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
-import { Eye, Search, Loader2 } from "lucide-react"
+import { Eye, Search, Loader2, Trash2, Edit } from "lucide-react"
 import LeadSearchFilters, { LeadFilters } from "../components/leads/lead-search-filters"
 import { applyLeadFilters } from "../components/leads/lead-filters"
 
@@ -87,6 +87,9 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({})
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [leadToDelete, setLeadToDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
 
   // Wrap setFilters in useCallback to prevent unnecessary re-renders
@@ -194,6 +197,46 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
       title: "Success",
       description: "Lead stage updated.",
     })
+  }
+
+  const deleteLead = async (leadId: string) => {
+    setDeleting(true)
+    const supabase = createClient()
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', leadId)
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to delete lead.",
+        })
+        return
+      }
+
+      // Remove lead from state
+      setLeads(leads.filter(lead => lead.id !== leadId))
+
+      toast({
+        title: "Success",
+        description: "Lead deleted successfully.",
+      })
+
+      setDeleteDialogOpen(false)
+      setLeadToDelete(null)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while deleting the lead.",
+      })
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (leads.length === 0) {
@@ -307,16 +350,17 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                         {new Date(lead.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => setSelectedLead(lead)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setSelectedLead(lead)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
                           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Lead Details</DialogTitle>
@@ -441,6 +485,18 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                             </div>
                           </DialogContent>
                         </Dialog>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setLeadToDelete(lead.id)
+                            setDeleteDialogOpen(true)
+                          }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -464,6 +520,44 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
               className="w-full h-auto rounded-lg"
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Lead</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this lead? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setDeleteDialogOpen(false)
+                setLeadToDelete(null)
+              }}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => leadToDelete && deleteLead(leadToDelete)}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
