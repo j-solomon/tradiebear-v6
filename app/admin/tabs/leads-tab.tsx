@@ -406,7 +406,10 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {lead.city}, {lead.state}
+                        <div className="text-sm">
+                          <div>{lead.address_street}</div>
+                          <div className="text-muted-foreground">{lead.city}, {lead.state} {lead.zip}</div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Select

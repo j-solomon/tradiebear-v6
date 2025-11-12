@@ -281,7 +281,8 @@ export default function PartnerDashboard({ profile, referralLink, initialLeads }
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            {lead.city}, {lead.state}
+                            <div>{lead.address_street}</div>
+                            <div className="text-muted-foreground">{lead.city}, {lead.state} {lead.zip}</div>
                           </div>
                         </TableCell>
                         <TableCell>
