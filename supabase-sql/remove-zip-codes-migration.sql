@@ -60,6 +60,9 @@ ALTER TABLE service_area_map
 DROP COLUMN IF EXISTS zip_code;
 
 -- Step 7: Update helper function to remove zip_code references
+-- Drop the old function first (required when changing return type)
+DROP FUNCTION IF EXISTS get_effective_service_areas(UUID);
+
 CREATE OR REPLACE FUNCTION get_effective_service_areas(p_sub_service_id UUID)
 RETURNS TABLE (
   id UUID,
@@ -130,6 +133,9 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- Step 8: Update service_areas_effective view
+-- Drop the old view first to avoid dependency issues
+DROP VIEW IF EXISTS service_areas_effective;
+
 CREATE OR REPLACE VIEW service_areas_effective AS
 SELECT 
   ss.id as sub_service_id,
