@@ -3,8 +3,21 @@
 -- ============================================================
 -- Run this SQL in Supabase SQL Editor to create error logging infrastructure
 
+-- Drop existing policies first if they exist
+DROP POLICY IF EXISTS "Admins can view error logs" ON error_logs;
+DROP POLICY IF EXISTS "Admins can update error logs" ON error_logs;
+DROP POLICY IF EXISTS "Service role can insert error logs" ON error_logs;
+
+-- Drop existing indexes if they exist
+DROP INDEX IF EXISTS idx_error_logs_created_at;
+DROP INDEX IF EXISTS idx_error_logs_type;
+DROP INDEX IF EXISTS idx_error_logs_unresolved;
+
+-- Drop the table if it exists (to start fresh)
+DROP TABLE IF EXISTS error_logs CASCADE;
+
 -- Create error_logs table
-CREATE TABLE IF NOT EXISTS error_logs (
+CREATE TABLE error_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   error_type TEXT NOT NULL,
   error_message TEXT NOT NULL,
@@ -17,17 +30,12 @@ CREATE TABLE IF NOT EXISTS error_logs (
 );
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON error_logs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_error_logs_type ON error_logs(error_type);
-CREATE INDEX IF NOT EXISTS idx_error_logs_unresolved ON error_logs(resolved) WHERE resolved = FALSE;
+CREATE INDEX idx_error_logs_created_at ON error_logs(created_at DESC);
+CREATE INDEX idx_error_logs_type ON error_logs(error_type);
+CREATE INDEX idx_error_logs_unresolved ON error_logs(resolved) WHERE resolved = FALSE;
 
 -- Enable Row Level Security
 ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies if they exist
-DROP POLICY IF EXISTS "Admins can view error logs" ON error_logs;
-DROP POLICY IF EXISTS "Admins can update error logs" ON error_logs;
-DROP POLICY IF EXISTS "Service role can insert error logs" ON error_logs;
 
 -- Admins can view all error logs
 CREATE POLICY "Admins can view error logs" ON error_logs
