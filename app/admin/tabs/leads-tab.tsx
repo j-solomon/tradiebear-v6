@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -88,6 +88,11 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const { toast } = useToast()
+
+  // Wrap setFilters in useCallback to prevent unnecessary re-renders
+  const handleFiltersChange = useCallback((newFilters: LeadFilters) => {
+    setFilters(newFilters)
+  }, [])
 
   // Helper function to get service name by ID
   const getServiceNameById = (serviceId: string | null | undefined): string | null => {
@@ -218,7 +223,7 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
           <LeadSearchFilters
             services={services}
             referrers={referrers}
-            onFiltersChange={setFilters}
+            onFiltersChange={handleFiltersChange}
           />
 
           {/* Table */}

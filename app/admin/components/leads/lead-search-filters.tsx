@@ -73,7 +73,7 @@ export default function LeadSearchFilters({
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [searchTerm, stage, serviceId, referrerId, dateRange])
+  }, [searchTerm, stage, serviceId, referrerId, dateRange, onFiltersChange])
 
   const handleClearFilters = () => {
     setSearchTerm("")
