@@ -723,17 +723,20 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     const supabase = createClient()
     const { data, error } = await supabase
       .from('geo_zips')
-      .select('code, city_id, cities(id, name, state_id, county_id)')
+      .select('code, city_id')
       .eq('code', zip)
       .single()
     
-    if (data && data.cities) {
+    if (data && data.city_id) {
+      // Get the city name for the success message
+      const cityName = availableCities.find(c => c.id === data.city_id)?.name || 'City'
+      
       // Auto-select the city and add it
-      await handleAddArea(data.cities.id)
+      await handleAddArea(data.city_id)
       setZipSearch('')
       toast({
         title: "Success",
-        description: `Added ${data.cities.name} (ZIP ${zip}) to service area.`
+        description: `Added ${cityName} (ZIP ${zip}) to service area.`
       })
     } else {
       toast({
