@@ -156,8 +156,8 @@ SELECT
 FROM sub_services ss
 JOIN services s ON ss.service_id = s.id
 CROSS JOIN LATERAL get_effective_service_areas(ss.id) esa
-LEFT JOIN geo_states st ON esa.state_id = st.id
-LEFT JOIN geo_counties co ON esa.county_id = co.id
+LEFT JOIN states st ON esa.state_id = st.id
+LEFT JOIN counties co ON esa.county_id = co.id
 LEFT JOIN cities ci ON esa.city_id = ci.id;
 
 -- Step 9: Verify the migration
