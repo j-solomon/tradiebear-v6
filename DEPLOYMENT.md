@@ -197,6 +197,9 @@ CREATE POLICY "Partners can view their referred leads" ON leads
 ```
 
 #### 5. service_area_map (with Inheritance System)
+
+**Note:** ZIP codes have been removed from the core service area structure for simplicity. Use the `geo_zips` table for ZIP-to-city lookup when needed.
+
 ```sql
 -- Create area_type enum for inheritance
 CREATE TYPE area_type AS ENUM (
@@ -205,13 +208,20 @@ CREATE TYPE area_type AS ENUM (
   'sub_service_exclusion'      -- Area removed from specific sub-service
 );
 
+-- Create area_level enum to support mixed granularity
+CREATE TYPE area_level AS ENUM (
+  'city',                      -- City-level coverage
+  'county',                    -- County-level coverage
+  'state'                      -- State-level coverage
+);
+
 CREATE TABLE service_area_map (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   service_id UUID REFERENCES services(id) ON DELETE CASCADE,
   sub_service_id UUID REFERENCES sub_services(id) ON DELETE CASCADE,
   area_type area_type NOT NULL,
+  area_level area_level NOT NULL DEFAULT 'city',
   state_code TEXT,
-  zip_code TEXT,
   state_id UUID REFERENCES states(id),
   county_id UUID REFERENCES counties(id),
   city_id UUID REFERENCES cities(id),
@@ -253,10 +263,10 @@ CREATE OR REPLACE FUNCTION get_effective_service_areas(p_sub_service_id UUID)
 RETURNS TABLE (
   id UUID,
   state_code TEXT,
-  zip_code TEXT,
   state_id UUID,
   county_id UUID,
   city_id UUID,
+  area_level area_level,
   area_source TEXT
 ) AS $$
 BEGIN
@@ -266,23 +276,23 @@ BEGIN
   ),
   service_areas AS (
     SELECT 
-      sam.id, sam.state_code, sam.zip_code, sam.state_id,
-      sam.county_id, sam.city_id, 'inherited' as area_source
+      sam.id, sam.state_code, sam.state_id,
+      sam.county_id, sam.city_id, sam.area_level, 'inherited' as area_source
     FROM service_area_map sam
     CROSS JOIN sub_service_info ssi
     WHERE sam.service_id = ssi.service_id
       AND sam.area_type = 'service_default'
   ),
   exclusions AS (
-    SELECT state_code, zip_code, state_id, county_id, city_id
+    SELECT state_code, state_id, county_id, city_id
     FROM service_area_map
     WHERE sub_service_id = p_sub_service_id
       AND area_type = 'sub_service_exclusion'
   ),
   inclusions AS (
     SELECT 
-      sam.id, sam.state_code, sam.zip_code, sam.state_id,
-      sam.county_id, sam.city_id, 'added' as area_source
+      sam.id, sam.state_code, sam.state_id,
+      sam.county_id, sam.city_id, sam.area_level, 'added' as area_source
     FROM service_area_map sam
     WHERE sam.sub_service_id = p_sub_service_id
       AND sam.area_type = 'sub_service_inclusion'
@@ -290,8 +300,10 @@ BEGIN
   SELECT sa.* FROM service_areas sa
   WHERE NOT EXISTS (
     SELECT 1 FROM exclusions e
-    WHERE e.state_code = sa.state_code
-      AND e.zip_code = sa.zip_code
+    WHERE COALESCE(e.state_code, '') = COALESCE(sa.state_code, '')
+      AND COALESCE(e.state_id::text, '') = COALESCE(sa.state_id::text, '')
+      AND COALESCE(e.county_id::text, '') = COALESCE(sa.county_id::text, '')
+      AND COALESCE(e.city_id::text, '') = COALESCE(sa.city_id::text, '')
   )
   UNION ALL
   SELECT * FROM inclusions;

@@ -72,15 +72,16 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
   const [serviceAreas, setServiceAreas] = useState<Array<{
     id: string
     area_type: 'service_default' | 'sub_service_inclusion' | 'sub_service_exclusion'
+    area_level: 'city' | 'county' | 'state'
     state_code?: string
     city_id?: string
     city_name?: string
     county_id?: string
     county_name?: string
-    zip_code?: string
     area_source: 'inherited' | 'added' | 'excluded' | 'service'
   }>>([])
   const [loadingAreas, setLoadingAreas] = useState(false)
+  const [zipSearch, setZipSearch] = useState('')
 
   const [serviceForm, setServiceForm] = useState({
     name: "",
@@ -603,7 +604,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
         // Fetching for a sub-service - get direct and inherited areas
         const { data, error: directError } = await supabase
           .from('service_area_map')
-          .select('id, area_type, state_code, city_id, county_id, zip_code')
+          .select('id, area_type, area_level, state_code, city_id, county_id')
           .eq('sub_service_id', subServiceId)
         
         if (directError) {
@@ -615,7 +616,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
         // Fetch service-level default areas (inherited)
         const { data: serviceData, error: serviceError } = await supabase
           .from('service_area_map')
-          .select('id, area_type, state_code, city_id, county_id, zip_code')
+          .select('id, area_type, area_level, state_code, city_id, county_id')
           .eq('service_id', serviceId)
           .eq('area_type', 'service_default')
           .is('sub_service_id', null)
@@ -629,7 +630,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
         // Fetching for a service - only get service-level areas
         const { data, error: serviceError } = await supabase
           .from('service_area_map')
-          .select('id, area_type, state_code, city_id, county_id, zip_code')
+          .select('id, area_type, area_level, state_code, city_id, county_id')
           .eq('service_id', serviceId)
           .eq('area_type', 'service_default')
           .is('sub_service_id', null)
@@ -679,12 +680,12 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
           return {
             id: area.id,
             area_type: 'service_default' as const,
+            area_level: area.area_level || 'city' as 'city' | 'county' | 'state',
             state_code: area.state_code,
             city_id: area.city_id,
             city_name: cityMap.get(area.city_id),
             county_id: countyId,
             county_name: countyMap.get(countyId),
-            zip_code: area.zip_code,
             area_source: subServiceId ? ('inherited' as const) : ('service' as const),
           }
         }),
@@ -694,12 +695,12 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
           return {
             id: area.id,
             area_type: area.area_type as 'sub_service_inclusion' | 'sub_service_exclusion',
+            area_level: area.area_level || 'city' as 'city' | 'county' | 'state',
             state_code: area.state_code,
             city_id: area.city_id,
             city_name: cityMap.get(area.city_id),
             county_id: countyId,
             county_name: countyMap.get(countyId),
-            zip_code: area.zip_code,
             area_source: area.area_type === 'sub_service_inclusion' ? 'added' as const : 'excluded' as const,
           }
         }),
@@ -716,6 +717,33 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     }
   }
 
+  const handleZipSearch = async (zip: string) => {
+    if (!zip || zip.length < 5) return
+    
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('geo_zips')
+      .select('code, city_id, cities(id, name, state_id, county_id)')
+      .eq('code', zip)
+      .single()
+    
+    if (data && data.cities) {
+      // Auto-select the city and add it
+      await handleAddArea(data.cities.id)
+      setZipSearch('')
+      toast({
+        title: "Success",
+        description: `Added ${data.cities.name} (ZIP ${zip}) to service area.`
+      })
+    } else {
+      toast({
+        variant: "destructive",
+        title: "ZIP not found",
+        description: `No city found for ZIP code ${zip}`
+      })
+    }
+  }
+
   const handleAddArea = async (cityId: string, areaType?: 'sub_service_inclusion' | 'sub_service_exclusion') => {
     if (!selectedSubServiceForAreas) return
     
@@ -723,12 +751,21 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     const city = availableCities.find(c => c.id === cityId)
     const state = availableStates.find(s => s.id === city?.state_id)
     
+    // Fetch county_id from the city
+    const { data: cityData } = await supabase
+      .from('cities')
+      .select('county_id')
+      .eq('id', cityId)
+      .single()
+    
     // Determine if we're adding to service or sub-service
     const isServiceLevel = !selectedSubServiceForAreas.subServiceId
     
     const insertData: any = {
       city_id: cityId,
       state_code: state?.code,
+      county_id: cityData?.county_id,
+      area_level: 'city',
     }
     
     if (isServiceLevel) {
@@ -1177,9 +1214,31 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
               </div>
             ) : (
               <div className="space-y-6 py-4">
+                {/* Add Area by ZIP Code */}
+                <div className="space-y-3">
+                  <Label>Add Area by ZIP Code</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter ZIP code..."
+                      value={zipSearch}
+                      onChange={(e) => setZipSearch(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleZipSearch(zipSearch)
+                      }}
+                      className="flex-1"
+                    />
+                    <Button onClick={() => handleZipSearch(zipSearch)} disabled={zipSearch.length < 5}>
+                      Search ZIP
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Enter a ZIP code to quickly add a city to the service area.
+                  </p>
+                </div>
+                
                 {/* Add Area Section */}
                 <div className="space-y-3">
-                  <Label>Add Area</Label>
+                  <Label>Or Browse by City</Label>
                   <div className="flex gap-2">
                     <select 
                       className="flex-1 rounded-md border px-3 py-2"
@@ -1208,7 +1267,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                     </select>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Select a location to add it to the service area. Note: Full county and ZIP details will be shown after adding.
+                    Select a location to add it to the service area.
                   </p>
                 </div>
                 
@@ -1222,7 +1281,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                           <TableHead>State</TableHead>
                           <TableHead>County</TableHead>
                           <TableHead>City</TableHead>
-                          <TableHead>ZIP Code</TableHead>
+                          <TableHead>Level</TableHead>
                           <TableHead>Source</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -1242,7 +1301,9 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                               <TableCell>
                                 {area.city_name || availableCities.find(c => c.id === area.city_id)?.name || 'Unknown'}
                               </TableCell>
-                              <TableCell>{area.zip_code || 'N/A'}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{area.area_level || 'city'}</Badge>
+                              </TableCell>
                               <TableCell>
                                 <Badge 
                                   variant={

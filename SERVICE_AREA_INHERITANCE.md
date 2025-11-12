@@ -30,14 +30,16 @@ Service: Roofing
 
 ### service_area_map Table
 
+**Note:** ZIP codes have been removed from service areas for simplicity. Use `geo_zips` table for ZIP-to-city lookup.
+
 ```sql
 CREATE TABLE service_area_map (
   id UUID PRIMARY KEY,
   service_id UUID REFERENCES services(id),      -- Set for service-level areas
   sub_service_id UUID REFERENCES sub_services(id), -- Set for sub-service areas
   area_type area_type NOT NULL,                 -- Type of area entry
+  area_level area_level NOT NULL DEFAULT 'city', -- Granularity level
   state_code TEXT,
-  zip_code TEXT,
   state_id UUID REFERENCES states(id),
   county_id UUID REFERENCES counties(id),
   city_id UUID REFERENCES cities(id),
@@ -52,6 +54,16 @@ CREATE TYPE area_type AS ENUM (
   'service_default',           -- Service-level area
   'sub_service_inclusion',     -- Add to sub-service
   'sub_service_exclusion'      -- Remove from sub-service
+);
+```
+
+### area_level Enum
+
+```sql
+CREATE TYPE area_level AS ENUM (
+  'city',                      -- City-level coverage
+  'county',                    -- County-level coverage  
+  'state'                      -- State-level coverage
 );
 ```
 
@@ -74,10 +86,10 @@ SELECT * FROM get_effective_service_areas('sub-service-uuid-here');
 **Returns:**
 
 ```
-id | state_code | zip_code | state_id | county_id | city_id | area_source
----|------------|----------|----------|-----------|---------|-------------
-... | OR         | 97201    | ...      | ...       | ...     | inherited
-... | WA         | 98001    | ...      | ...       | ...     | added
+id | state_code | state_id | county_id | city_id | area_level | area_source
+---|------------|----------|-----------|---------|------------|-------------
+... | OR         | ...      | ...       | ...     | city       | inherited
+... | WA         | ...      | ...       | ...     | city       | added
 ```
 
 ### service_areas_effective View
@@ -93,7 +105,7 @@ SELECT
   s.name as service_name,
   esa.id as area_id,
   esa.state_code,
-  esa.zip_code,
+  esa.area_level,
   esa.area_source,
   st.name as state_name,
   co.name as county_name,
@@ -101,8 +113,8 @@ SELECT
 FROM sub_services ss
 JOIN services s ON ss.service_id = s.id
 CROSS JOIN LATERAL get_effective_service_areas(ss.id) esa
-LEFT JOIN states st ON esa.state_id = st.id
-LEFT JOIN counties co ON esa.county_id = co.id
+LEFT JOIN geo_states st ON esa.state_id = st.id
+LEFT JOIN geo_counties co ON esa.county_id = co.id
 LEFT JOIN cities ci ON esa.city_id = ci.id;
 ```
 
@@ -113,10 +125,10 @@ LEFT JOIN cities ci ON esa.city_id = ci.id;
 All sub-services under this service will automatically inherit these areas:
 
 ```sql
-INSERT INTO service_area_map (service_id, area_type, state_code, zip_code)
+INSERT INTO service_area_map (service_id, area_type, area_level, state_code, city_id)
 VALUES 
-  ('roofing-service-uuid', 'service_default', 'OR', '97201'),
-  ('roofing-service-uuid', 'service_default', 'WA', '98001');
+  ('roofing-service-uuid', 'service_default', 'city', 'OR', 'portland-city-uuid'),
+  ('roofing-service-uuid', 'service_default', 'city', 'WA', 'seattle-city-uuid');
 ```
 
 ### 2. Add Sub-Service Specific Area
@@ -124,9 +136,9 @@ VALUES
 Add an area that only applies to one sub-service:
 
 ```sql
-INSERT INTO service_area_map (sub_service_id, area_type, state_code, zip_code)
+INSERT INTO service_area_map (sub_service_id, area_type, area_level, state_code, city_id)
 VALUES 
-  ('roof-repair-uuid', 'sub_service_inclusion', 'WA', '98052');
+  ('roof-repair-uuid', 'sub_service_inclusion', 'city', 'WA', 'redmond-city-uuid');
 ```
 
 ### 3. Exclude Area from Sub-Service
@@ -134,9 +146,9 @@ VALUES
 Remove an inherited area from a specific sub-service:
 
 ```sql
-INSERT INTO service_area_map (sub_service_id, area_type, state_code, zip_code)
+INSERT INTO service_area_map (sub_service_id, area_type, area_level, state_code, city_id)
 VALUES 
-  ('roof-repair-uuid', 'sub_service_exclusion', 'OR', '97201');
+  ('roof-repair-uuid', 'sub_service_exclusion', 'city', 'OR', 'portland-city-uuid');
 ```
 
 ### 4. Query Effective Areas
@@ -194,15 +206,15 @@ When managing areas at the sub-service level:
 
 ```sql
 -- Service: Plumbing covers Portland and Seattle
-INSERT INTO service_area_map (service_id, area_type, state_code, zip_code)
+INSERT INTO service_area_map (service_id, area_type, area_level, state_code, city_id)
 VALUES 
-  ('plumbing-uuid', 'service_default', 'OR', '97201'),
-  ('plumbing-uuid', 'service_default', 'WA', '98101');
+  ('plumbing-uuid', 'service_default', 'city', 'OR', 'portland-city-uuid'),
+  ('plumbing-uuid', 'service_default', 'city', 'WA', 'seattle-city-uuid');
 
 -- Sub-Service: Emergency Plumbing also covers Tacoma
-INSERT INTO service_area_map (sub_service_id, area_type, state_code, zip_code)
+INSERT INTO service_area_map (sub_service_id, area_type, area_level, state_code, city_id)
 VALUES 
-  ('emergency-plumbing-uuid', 'sub_service_inclusion', 'WA', '98401');
+  ('emergency-plumbing-uuid', 'sub_service_inclusion', 'city', 'WA', 'tacoma-city-uuid');
 
 -- Result: Emergency Plumbing serves Portland, Seattle, and Tacoma
 ```
@@ -210,17 +222,17 @@ VALUES
 ### Example 2: HVAC Service with Exclusion
 
 ```sql
--- Service: HVAC covers entire state
-INSERT INTO service_area_map (service_id, area_type, state_code)
+-- Service: HVAC covers entire state at state level
+INSERT INTO service_area_map (service_id, area_type, area_level, state_code, state_id)
 VALUES 
-  ('hvac-uuid', 'service_default', 'OR');
+  ('hvac-uuid', 'service_default', 'state', 'OR', 'oregon-state-uuid');
 
--- Sub-Service: Commercial HVAC excludes rural areas
-INSERT INTO service_area_map (sub_service_id, area_type, zip_code)
+-- Sub-Service: Commercial HVAC excludes specific rural county
+INSERT INTO service_area_map (sub_service_id, area_type, area_level, state_code, county_id)
 VALUES 
-  ('commercial-hvac-uuid', 'sub_service_exclusion', '97801');
+  ('commercial-hvac-uuid', 'sub_service_exclusion', 'county', 'OR', 'rural-county-uuid');
 
--- Result: Commercial HVAC serves OR state except zip 97801
+-- Result: Commercial HVAC serves OR state except specified rural county
 ```
 
 ## Performance Considerations
@@ -258,7 +270,7 @@ CREATE INDEX idx_service_area_map_area_type ON service_area_map(area_type);
 ### Issue: Exclusion not working
 
 **Check:**
-1. Verify exclusion matches exactly (state_code, zip_code, etc.):
+1. Verify exclusion matches exactly (state_code, city_id, county_id, etc.):
    ```sql
    SELECT * FROM service_area_map 
    WHERE sub_service_id = 'sub-service-uuid' 
@@ -270,10 +282,10 @@ CREATE INDEX idx_service_area_map_area_type ON service_area_map(area_type);
 **Check:**
 1. Look for duplicate entries:
    ```sql
-   SELECT state_code, zip_code, COUNT(*)
+   SELECT city_id, area_type, COUNT(*)
    FROM service_area_map
    WHERE sub_service_id = 'sub-service-uuid'
-   GROUP BY state_code, zip_code
+   GROUP BY city_id, area_type
    HAVING COUNT(*) > 1;
    ```
 
