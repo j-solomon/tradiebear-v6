@@ -49,7 +49,7 @@ export default async function ReferralPage({ params, searchParams }: PageProps) 
     supabase
       .from('services')
       .select('*')
-      .eq('active', true)
+      .eq('is_active', true)
       .order('name'),
     supabase
       .from('sub_services')
