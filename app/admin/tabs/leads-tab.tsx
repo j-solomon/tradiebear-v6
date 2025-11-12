@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
-import { Eye, Search } from "lucide-react"
+import { Eye, Search, Loader2 } from "lucide-react"
 
 interface Lead {
   id: string
@@ -77,6 +77,9 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
   const [stageFilter, setStageFilter] = useState<string>("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({})
+  const [imageDialogOpen, setImageDialogOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const { toast } = useToast()
 
   // Helper function to get service name by ID
@@ -85,6 +88,37 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
     const service = services.find(s => s.id === serviceId)
     return service?.name || null
   }
+
+  // Function to get signed URL for images
+  const getImageUrl = async (filename: string): Promise<string | null> => {
+    const supabase = createClient()
+    const { data, error } = await supabase.storage
+      .from('lead-attachments')
+      .createSignedUrl(filename, 3600) // 1 hour expiry
+    
+    if (error) {
+      console.error('Error generating signed URL:', error)
+      return null
+    }
+    return data.signedUrl
+  }
+
+  // Load images when a lead is selected
+  useEffect(() => {
+    if (selectedLead?.extra_details?.attachments) {
+      const loadImages = async () => {
+        const urls: Record<string, string> = {}
+        for (const filename of selectedLead.extra_details.attachments) {
+          const url = await getImageUrl(filename)
+          if (url) urls[filename] = url
+        }
+        setImageUrls(urls)
+      }
+      loadImages()
+    } else {
+      setImageUrls({})
+    }
+  }, [selectedLead])
 
   const filteredLeads = leads.filter((lead) => {
     const matchesStage = stageFilter === "all" || lead.stage === stageFilter
@@ -209,11 +243,17 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">
-                            {lead.sub_service?.name || getServiceNameById(lead.extra_details?.service_id) || 'N/A'}
+                          <div className="font-medium text-sm">
+                            {lead.sub_service?.description || 
+                             lead.sub_service?.name || 
+                             getServiceNameById(lead.extra_details?.service_id) ||
+                             'Not specified'}
                           </div>
-                          {lead.sub_service?.service?.name && (
-                            <div className="text-xs text-muted-foreground">{lead.sub_service.service.name}</div>
+                          {(lead.sub_service?.service?.name || getServiceNameById(lead.extra_details?.service_id)) && (
+                            <div className="text-xs text-muted-foreground">
+                              {lead.sub_service?.service?.name || 
+                               (lead.extra_details?.service_id && getServiceNameById(lead.extra_details?.service_id))}
+                            </div>
                           )}
                         </div>
                       </TableCell>
@@ -266,6 +306,22 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
+                              {/* Referral Source - Prominent at top */}
+                              <div className="bg-primary/5 rounded-lg p-4">
+                                <Label>Referred By</Label>
+                                <p className="text-lg font-semibold">
+                                  {lead.referral_link?.profiles?.name || 
+                                   lead.referral_link?.profiles?.handle || 
+                                   'Direct'}
+                                </p>
+                                {lead.referral_link?.slug && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Link: /r/{lead.referral_link.slug}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Contact Info */}
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
                                   <Label>Name</Label>
@@ -282,19 +338,22 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                                 <div>
                                   <Label>Service Category</Label>
                                   <p className="text-sm">
-                                    {lead.sub_service?.service?.name || getServiceNameById(lead.extra_details?.service_id) || 'N/A'}
+                                    {lead.sub_service?.service?.name || 
+                                     getServiceNameById(lead.extra_details?.service_id) || 
+                                     'Not specified'}
                                   </p>
                                 </div>
                                 <div className="col-span-2">
                                   <Label>Specific Service</Label>
                                   <p className="text-sm font-medium">
-                                    {lead.sub_service?.name || (lead.extra_details?.service_id ? getServiceNameById(lead.extra_details?.service_id) || 'N/A' : 'N/A')}
+                                    {lead.sub_service?.description || 
+                                     lead.sub_service?.name || 
+                                     'Not specified'}
                                   </p>
-                                  {lead.sub_service?.description && (
-                                    <p className="text-xs text-muted-foreground">{lead.sub_service.description}</p>
-                                  )}
                                 </div>
                               </div>
+
+                              {/* Address */}
                               <div>
                                 <Label>Address</Label>
                                 <p className="text-sm">
@@ -302,42 +361,62 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                                   {lead.city}, {lead.state} {lead.zip}
                                 </p>
                               </div>
-                              {(lead.extra_details?.budget_range || lead.budget_estimate) && (
+
+                              {/* Budget - Always shown */}
+                              <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <Label>Budget</Label>
+                                  <Label>Budget Range</Label>
                                   <p className="text-sm">
-                                    {lead.extra_details?.budget_range || `$${lead.budget_estimate?.toLocaleString()}`}
+                                    {lead.extra_details?.budget_range || 'Not provided'}
                                   </p>
                                 </div>
-                              )}
-                              {lead.timeline && (
                                 <div>
-                                  <Label>Timeline</Label>
-                                  <p className="text-sm">{lead.timeline}</p>
+                                  <Label>Project Timeline</Label>
+                                  <p className="text-sm">
+                                    {lead.timeline || 'Not provided'}
+                                  </p>
                                 </div>
-                              )}
-                              {lead.notes && (
-                                <div>
-                                  <Label>Notes</Label>
-                                  <p className="text-sm whitespace-pre-wrap">{lead.notes}</p>
-                                </div>
-                              )}
+                              </div>
+
+                              {/* Notes - Always shown */}
+                              <div>
+                                <Label>Additional Notes</Label>
+                                <p className="text-sm whitespace-pre-wrap">
+                                  {lead.notes || 'No additional notes provided'}
+                                </p>
+                              </div>
+
+                              {/* Images with thumbnails */}
                               {lead.extra_details?.attachments && lead.extra_details.attachments.length > 0 && (
                                 <div>
-                                  <Label>Attachments</Label>
-                                  <div className="grid grid-cols-2 gap-2 mt-2">
+                                  <Label>Photos ({lead.extra_details.attachments.length})</Label>
+                                  <div className="grid grid-cols-3 gap-2 mt-2">
                                     {lead.extra_details.attachments.map((filename: string, idx: number) => (
                                       <div
                                         key={idx}
-                                        className="text-sm text-muted-foreground"
+                                        className="relative aspect-square rounded-lg overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
+                                        onClick={async () => {
+                                          const url = await getImageUrl(filename)
+                                          if (url) {
+                                            setSelectedImage(url)
+                                            setImageDialogOpen(true)
+                                          }
+                                        }}
                                       >
-                                        📎 {filename}
+                                        {imageUrls[filename] ? (
+                                          <img 
+                                            src={imageUrls[filename]} 
+                                            alt={`Attachment ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                          </div>
+                                        )}
                                       </div>
                                     ))}
                                   </div>
-                                  <p className="text-xs text-muted-foreground mt-2">
-                                    (Signed URLs for viewing images coming soon)
-                                  </p>
                                 </div>
                               )}
                             </div>
@@ -352,6 +431,22 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Image Preview</DialogTitle>
+          </DialogHeader>
+          {selectedImage && (
+            <img 
+              src={selectedImage} 
+              alt="Full size preview" 
+              className="w-full h-auto rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

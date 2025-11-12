@@ -40,13 +40,14 @@ export default async function AdminPage() {
       .select(`
         *,
         sub_service:sub_services!sub_service_id(
+          id,
           name,
           description,
-          service:services(name)
+          service:services(id, name)
         ),
         referral_link:referral_links!referral_id(
           slug,
-          profiles:user_id(name, handle)
+          profiles:user_id(name, handle, email)
         )
       `)
       .order('created_at', { ascending: false })
