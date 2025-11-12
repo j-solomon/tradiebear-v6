@@ -662,7 +662,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
       // Fetch county names for all county IDs (both from areas and from cities)
       const countyIdsFromAreas = allAreas.map(a => a.county_id).filter(Boolean)
       const countyIdsFromCities = cities?.map(c => c.county_id).filter(Boolean) || []
-      const allCountyIds = [...new Set([...countyIdsFromAreas, ...countyIdsFromCities])]
+      const allCountyIds = Array.from(new Set([...countyIdsFromAreas, ...countyIdsFromCities]))
       
       const { data: counties } = await supabase
         .from('counties')
