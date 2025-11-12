@@ -18,29 +18,23 @@ interface Lead {
   city: string
   state: string
   zip: string
-  notes?: string
   stage: string
   created_at: string
-  budget_estimate?: number
-  timeline?: string
-  sub_service?: {
-    id?: string
-    name?: string
+  sub_service?: { 
+    name: string
     description?: string
-    service?: { 
-      id?: string
-      name?: string 
-    }
+    service?: { name: string }
   }
   referral_link?: {
-    id?: string
-    slug?: string
+    slug: string
     profiles?: {
-      name?: string
-      handle?: string
-      email?: string
+      name: string
+      handle: string
     }
   }
+  budget_estimate?: number
+  timeline?: string
+  notes?: string
   extra_details?: any
 }
 
@@ -79,15 +73,17 @@ export function applyLeadFilters(leads: Lead[], filters: LeadFilters): Lead[] {
   if (filters.serviceId && filters.serviceId !== 'all') {
     filtered = filtered.filter(lead => {
       if (!lead.sub_service) return false
-      return lead.sub_service.service?.id === filters.serviceId
+      // Check if service name matches or if extra_details has matching service_id
+      const serviceName = lead.sub_service.service?.name
+      const serviceIdMatch = lead.extra_details?.service_id === filters.serviceId
+      return serviceIdMatch
     })
   }
 
   // Referrer filter
   if (filters.referrerId && filters.referrerId !== 'all') {
     filtered = filtered.filter(lead => {
-      return lead.referral_link?.slug === filters.referrerId || 
-             lead.referral_link?.id === filters.referrerId
+      return lead.referral_link?.slug === filters.referrerId
     })
   }
 

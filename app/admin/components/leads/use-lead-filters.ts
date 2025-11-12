@@ -11,29 +11,23 @@ interface Lead {
   city: string
   state: string
   zip: string
-  notes?: string
   stage: string
   created_at: string
-  budget_estimate?: number
-  timeline?: string
-  sub_service?: {
-    id?: string
-    name?: string
+  sub_service?: { 
+    name: string
     description?: string
-    service?: { 
-      id?: string
-      name?: string 
-    }
+    service?: { name: string }
   }
   referral_link?: {
-    id?: string
-    slug?: string
+    slug: string
     profiles?: {
-      name?: string
-      handle?: string
-      email?: string
+      name: string
+      handle: string
     }
   }
+  budget_estimate?: number
+  timeline?: string
+  notes?: string
   extra_details?: any
 }
 
