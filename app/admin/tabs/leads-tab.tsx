@@ -568,31 +568,37 @@ export default function LeadsTab({ initialLeads, services }: LeadsTabProps) {
                                   </div>
                                 </div>
                               )}
+
+                              {/* Action Buttons */}
+                              <div className="flex gap-3 pt-4 border-t">
+                                <Button 
+                                  variant="outline" 
+                                  className="flex-1"
+                                  onClick={() => {
+                                    setSelectedLead(null)
+                                    setLeadToEdit(lead)
+                                    setEditDialogOpen(true)
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Lead
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => {
+                                    setSelectedLead(null)
+                                    setLeadToDelete(lead.id)
+                                    setDeleteDialogOpen(true)
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete Lead
+                                </Button>
+                              </div>
                             </div>
                           </DialogContent>
                         </Dialog>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setLeadToEdit(lead)
-                            setEditDialogOpen(true)
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setLeadToDelete(lead.id)
-                            setDeleteDialogOpen(true)
-                          }}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
                       </TableCell>
                     </TableRow>
                   ))
