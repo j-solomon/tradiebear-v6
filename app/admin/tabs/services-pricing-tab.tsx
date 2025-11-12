@@ -754,15 +754,44 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     const city = availableCities.find(c => c.id === cityId)
     const state = availableStates.find(s => s.id === city?.state_id)
     
+    // Determine if we're adding to service or sub-service
+    const isServiceLevel = !selectedSubServiceForAreas.subServiceId
+    
+    // Check if this area already exists
+    let existingCheck = supabase
+      .from('service_area_map')
+      .select('id')
+      .eq('city_id', cityId)
+    
+    if (isServiceLevel) {
+      existingCheck = existingCheck
+        .eq('service_id', selectedSubServiceForAreas.serviceId)
+        .eq('area_type', 'service_default')
+        .is('sub_service_id', null)
+    } else {
+      existingCheck = existingCheck
+        .eq('sub_service_id', selectedSubServiceForAreas.subServiceId)
+        .eq('area_type', areaType || 'sub_service_inclusion')
+    }
+    
+    const { data: existing } = await existingCheck.single()
+    
+    if (existing) {
+      const cityName = city?.name || 'This location'
+      toast({
+        variant: "destructive",
+        title: "Already exists",
+        description: `${cityName} is already in the service area.`,
+      })
+      return
+    }
+    
     // Fetch county_id from the city
     const { data: cityData } = await supabase
       .from('cities')
       .select('county_id')
       .eq('id', cityId)
       .single()
-    
-    // Determine if we're adding to service or sub-service
-    const isServiceLevel = !selectedSubServiceForAreas.subServiceId
     
     const insertData: any = {
       city_id: cityId,
