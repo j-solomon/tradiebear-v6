@@ -571,7 +571,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
       <CardContent className="space-y-4">
         {services.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No services yet. Click "Add Service" to get started.
+            No services yet. Click &quot;Add Service&quot; to get started.
           </div>
         ) : (
           services.map((service) => (
@@ -667,7 +667,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                     </div>
                     {!service.sub_services || service.sub_services.length === 0 ? (
                       <div className="text-sm text-muted-foreground text-center py-4">
-                        No sub-services yet. Click "Add Sub-Service" to create one.
+                        No sub-services yet. Click &quot;Add Sub-Service&quot; to create one.
                       </div>
                     ) : (
                       <div className="rounded-md border bg-background">
