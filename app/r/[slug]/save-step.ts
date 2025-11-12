@@ -12,6 +12,8 @@ interface SaveStep1Data {
   state: string
   zip: string
   consent_unified: boolean
+  service_id?: string
+  sub_service_id?: string
 }
 
 export async function saveStep1(data: SaveStep1Data) {
@@ -39,10 +41,12 @@ export async function saveStep1(data: SaveStep1Data) {
     city: data.city,
     state: data.state,
     zip: data.zip,
+    sub_service_id: data.sub_service_id || null,
     extra_details: {
       consent_email: data.consent_unified,
       consent_sms: data.consent_unified,
       consent_call: data.consent_unified,
+      service_id: data.service_id || null,
     },
     completion_status: 'step1_complete',
     step1_completed_at: new Date().toISOString(),

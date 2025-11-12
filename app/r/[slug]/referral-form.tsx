@@ -391,6 +391,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
           state: formData.state,
           zip: formData.zip,
           consent_unified: formData.consent_unified,
+          service_id: formData.service_id,
+          sub_service_id: formData.sub_service_id,
         })
 
         if (result.error) {
