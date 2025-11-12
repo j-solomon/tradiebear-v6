@@ -136,6 +136,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
+    // Only initialize when on step 2 (contact info) where address field exists
+    if (currentStep !== 2) return
     if (!addressInputRef.current) return
 
     let autocompleteInstance: any = null
@@ -230,7 +232,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         window.google.maps.event.clearInstanceListeners(autocompleteInstance)
       }
     }
-  }, [])
+  }, [currentStep])
 
   // Get services for selected parent category
   const getServicesForParent = (parentId: string) => {
