@@ -310,8 +310,24 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     setFiles(files.filter((_, i) => i !== index))
   }
 
-  // Step 1 validation
-  const validateStep1 = () => {
+  // Validate Project Details (Step 1)
+  const validateProjectDetails = () => {
+    // If no sub-services available, just require service_id
+    if (availableSubServices.length === 0 && !formData.service_id) {
+      toast({ variant: "destructive", title: "Service required", description: "Please select a service." })
+      return false
+    }
+    
+    // If sub-services exist, require selection
+    if (availableSubServices.length > 0 && !formData.sub_service_id) {
+      toast({ variant: "destructive", title: "Service required", description: "Please select a specific service." })
+      return false
+    }
+    return true
+  }
+
+  // Validate Contact Info (Step 2)
+  const validateContactInfo = () => {
     if (!formData.name.trim()) {
       toast({ variant: "destructive", title: "Name required", description: "Please enter your full name." })
       return false
@@ -351,26 +367,15 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     return true
   }
 
-  // Step 2 validation
-  const validateStep2 = () => {
-    // If no sub-services available, just require service_id
-    if (availableSubServices.length === 0 && !formData.service_id) {
-      toast({ variant: "destructive", title: "Service required", description: "Please select a service." })
-      return false
-    }
-    
-    // If sub-services exist, require selection
-    if (availableSubServices.length > 0 && !formData.sub_service_id) {
-      toast({ variant: "destructive", title: "Service required", description: "Please select a specific service." })
-      return false
-    }
-    return true
-  }
-
   // Handle next/save
   const handleNext = async () => {
     if (currentStep === 1) {
-      if (!validateStep1()) return
+      // Step 1: Project Details - just validate and proceed
+      if (!validateProjectDetails()) return
+      setCurrentStep(2)
+    } else if (currentStep === 2) {
+      // Step 2: Contact Info - validate and save
+      if (!validateContactInfo()) return
       
       setLoading(true)
       try {
@@ -397,7 +402,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         }
 
         setSavedLeadId(result.leadId || null)
-        setCurrentStep(2)
+        setCurrentStep(3)
       } catch (error) {
         toast({
           variant: "destructive",
@@ -407,17 +412,10 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       } finally {
         setLoading(false)
       }
-    } else if (currentStep === 2 && validateStep2()) {
-      setCurrentStep(3)
     }
   }
 
   const handleBack = () => {
-    if (currentStep === 2) {
-      // Reset service selections when going back
-      setSelectedParentCategory("")
-      setFormData({ ...formData, service_id: "", sub_service_id: "" })
-    }
     setCurrentStep(currentStep - 1)
   }
 
@@ -571,8 +569,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
   // Progress steps
   const steps = [
-    { number: 1, label: "Contact Info" },
-    { number: 2, label: "Project Details" },
+    { number: 1, label: "Project Details" },
+    { number: 2, label: "Contact Info" },
     { number: 3, label: "Review & Submit" }
   ]
 
@@ -582,13 +580,13 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1">
             <CardTitle className="text-xl sm:text-2xl font-bold leading-tight mb-1">
-              {currentStep === 1 && "Contact Information"}
-              {currentStep === 2 && "Project Details"}
+              {currentStep === 1 && "Project Details"}
+              {currentStep === 2 && "Contact Information"}
               {currentStep === 3 && "Review & Submit"}
             </CardTitle>
             <CardDescription className="text-sm sm:text-base">
-              {currentStep === 1 && "Takes less than 90 seconds"}
-              {currentStep === 2 && "Tell us about your project"}
+              {currentStep === 1 && "Tell us about your project"}
+              {currentStep === 2 && "Takes less than 90 seconds"}
               {currentStep === 3 && "One last look before we connect you"}
             </CardDescription>
           </div>
@@ -642,126 +640,8 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       <CardContent className="px-4 sm:px-6 py-5 sm:py-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* ========== STEP 1: CONTACT INFO ========== */}
+          {/* ========== STEP 1: PROJECT DETAILS ========== */}
           {currentStep === 1 && (
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-base font-medium">Full Name <span className="text-xs">*</span></Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="John Smith"
-                  className="h-12 text-base"
-                  autoComplete="name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-base font-medium">Email Address <span className="text-xs">*</span></Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="john@example.com"
-                  className="h-12 text-base"
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-base font-medium">Phone Number <span className="text-xs">*</span></Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handlePhoneChange}
-                  placeholder="(503) 555-1234"
-                  className="h-12 text-base"
-                  autoComplete="tel"
-                />
-              </div>
-
-              <div className="space-y-4 pt-2">
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-base font-medium">Street Address <span className="text-xs">*</span></Label>
-                  <Input
-                    ref={addressInputRef}
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Start typing your address..."
-                    className="h-12 text-base"
-                    autoComplete="off"
-                  />
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <span className="text-primary">●</span> Powered by Google Maps
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="zip" className="text-base font-medium">ZIP Code <span className="text-xs">*</span></Label>
-                  <Input
-                    id="zip"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={5}
-                    value={formData.zip}
-                    onChange={handleZipChange}
-                    placeholder="97201"
-                    className="h-12 text-base"
-                  />
-                  {formData.city && formData.state && (
-                    <p className="text-xs text-muted-foreground">
-                      📍 {formData.city}, {formData.state}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Consent */}
-              <div className="space-y-3 pt-3 border-t">
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="consent"
-                    checked={formData.consent_unified}
-                    onCheckedChange={(checked) => 
-                      setFormData({ ...formData, consent_unified: checked as boolean })
-                    }
-                    required
-                    className="mt-0.5 h-5 w-5"
-                  />
-                  <Label htmlFor="consent" className="text-sm leading-tight cursor-pointer font-normal">
-                    I agree to be contacted about my project. <span className="text-xs">*</span>
-                  </Label>
-                </div>
-              </div>
-
-              <Button 
-                type="button" 
-                onClick={handleNext} 
-                disabled={loading}
-                className="w-full h-12 text-base font-semibold" 
-                size="lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-
-          {/* ========== STEP 2: PROJECT DETAILS ========== */}
-          {currentStep === 2 && (
             <div className="space-y-6">
               {/* Parent category selection */}
               {!selectedParentCategory && (
@@ -993,6 +873,115 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 </>
               )}
 
+              {(formData.sub_service_id || (formData.service_id && availableSubServices.length === 0)) && (
+                <Button 
+                  type="button" 
+                  onClick={handleNext} 
+                  className="w-full h-12 text-base font-semibold"
+                >
+                  Continue
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* ========== STEP 2: CONTACT INFO ========== */}
+          {currentStep === 2 && (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-base font-medium">Full Name <span className="text-xs">*</span></Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="John Smith"
+                  className="h-12 text-base"
+                  autoComplete="name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-base font-medium">Email Address <span className="text-xs">*</span></Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  className="h-12 text-base"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-base font-medium">Phone Number <span className="text-xs">*</span></Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handlePhoneChange}
+                  placeholder="(503) 555-1234"
+                  className="h-12 text-base"
+                  autoComplete="tel"
+                />
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-base font-medium">Street Address <span className="text-xs">*</span></Label>
+                  <Input
+                    ref={addressInputRef}
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="Start typing your address..."
+                    className="h-12 text-base"
+                    autoComplete="off"
+                  />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="text-primary">●</span> Powered by Google Maps
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zip" className="text-base font-medium">ZIP Code <span className="text-xs">*</span></Label>
+                  <Input
+                    id="zip"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={formData.zip}
+                    onChange={handleZipChange}
+                    placeholder="97201"
+                    className="h-12 text-base"
+                  />
+                  {formData.city && formData.state && (
+                    <p className="text-xs text-muted-foreground">
+                      📍 {formData.city}, {formData.state}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Consent */}
+              <div className="space-y-3 pt-3 border-t">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="consent"
+                    checked={formData.consent_unified}
+                    onCheckedChange={(checked) => 
+                      setFormData({ ...formData, consent_unified: checked as boolean })
+                    }
+                    required
+                    className="mt-0.5 h-5 w-5"
+                  />
+                  <Label htmlFor="consent" className="text-sm leading-tight cursor-pointer font-normal">
+                    I agree to be contacted about my project. <span className="text-xs">*</span>
+                  </Label>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button 
                   type="button" 
@@ -1002,16 +991,25 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                 >
                   Back
                 </Button>
-                {(formData.sub_service_id || (formData.service_id && availableSubServices.length === 0)) && (
-                  <Button 
-                    type="button" 
-                    onClick={handleNext} 
-                    className="w-full sm:flex-1 h-12 text-base font-semibold"
-                  >
-                    Review & Submit
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                )}
+                <Button 
+                  type="button" 
+                  onClick={handleNext} 
+                  disabled={loading}
+                  className="w-full sm:flex-1 h-12 text-base font-semibold" 
+                  size="lg"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      Review & Submit
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}
@@ -1019,31 +1017,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
           {/* ========== STEP 3: REVIEW & SUBMIT ========== */}
           {currentStep === 3 && (
             <div className="space-y-6">
-              {/* Contact Info Summary */}
-              <div className="bg-muted/50 rounded-xl p-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-base flex items-center gap-2">
-                    📱 Contact Information
-                  </h3>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => editStep(1)}
-                    className="text-xs"
-                  >
-                    <Edit2 className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                </div>
-                <div className="text-sm space-y-1.5 text-muted-foreground">
-                  <p><strong className="text-foreground">Name:</strong> {formData.name}</p>
-                  <p><strong className="text-foreground">Email:</strong> {formData.email}</p>
-                  <p><strong className="text-foreground">Phone:</strong> {formData.phone}</p>
-                  <p><strong className="text-foreground">Address:</strong> {formData.address}, {formData.city}, {formData.state} {formData.zip}</p>
-                </div>
-              </div>
-
               {/* Project Details Summary */}
               <div className="bg-muted/50 rounded-xl p-5 space-y-3">
                 <div className="flex items-center justify-between">
@@ -1054,7 +1027,7 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => editStep(2)}
+                    onClick={() => editStep(1)}
                     className="text-xs"
                   >
                     <Edit2 className="h-3 w-3 mr-1" />
@@ -1074,6 +1047,31 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
                   {files.length > 0 && (
                     <p><strong className="text-foreground">Photos:</strong> {files.length} file(s) attached</p>
                   )}
+                </div>
+              </div>
+
+              {/* Contact Info Summary */}
+              <div className="bg-muted/50 rounded-xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base flex items-center gap-2">
+                    📱 Contact Information
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editStep(2)}
+                    className="text-xs"
+                  >
+                    <Edit2 className="h-3 w-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+                <div className="text-sm space-y-1.5 text-muted-foreground">
+                  <p><strong className="text-foreground">Name:</strong> {formData.name}</p>
+                  <p><strong className="text-foreground">Email:</strong> {formData.email}</p>
+                  <p><strong className="text-foreground">Phone:</strong> {formData.phone}</p>
+                  <p><strong className="text-foreground">Address:</strong> {formData.address}, {formData.city}, {formData.state} {formData.zip}</p>
                 </div>
               </div>
 
