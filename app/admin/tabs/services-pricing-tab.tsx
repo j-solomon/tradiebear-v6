@@ -75,7 +75,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     state_code?: string
     city_id?: string
     city_name?: string
-    area_source: 'inherited' | 'added' | 'excluded'
+    area_source: 'inherited' | 'added' | 'excluded' | 'service'
   }>>([])
   const [loadingAreas, setLoadingAreas] = useState(false)
 
@@ -592,72 +592,130 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     
     const supabase = createClient()
     
-    // Fetch direct areas for this sub-service
-    const { data: directAreas, error: directError } = await supabase
-      .from('service_area_map')
-      .select('id, area_type, state_code, city_id, cities(name)')
-      .eq('sub_service_id', subServiceId)
-    
-    if (directError) {
-      console.error('Error fetching direct areas:', directError)
+    try {
+      let directAreas: any[] = []
+      let serviceDefaultAreas: any[] = []
+      
+      if (subServiceId) {
+        // Fetching for a sub-service - get direct and inherited areas
+        const { data, error: directError } = await supabase
+          .from('service_area_map')
+          .select('id, area_type, state_code, city_id')
+          .eq('sub_service_id', subServiceId)
+        
+        if (directError) {
+          console.error('Error fetching direct areas:', directError)
+        } else {
+          directAreas = data || []
+        }
+        
+        // Fetch service-level default areas (inherited)
+        const { data: serviceData, error: serviceError } = await supabase
+          .from('service_area_map')
+          .select('id, area_type, state_code, city_id')
+          .eq('service_id', serviceId)
+          .eq('area_type', 'service_default')
+          .is('sub_service_id', null)
+        
+        if (serviceError) {
+          console.error('Error fetching service areas:', serviceError)
+        } else {
+          serviceDefaultAreas = serviceData || []
+        }
+      } else {
+        // Fetching for a service - only get service-level areas
+        const { data, error: serviceError } = await supabase
+          .from('service_area_map')
+          .select('id, area_type, state_code, city_id')
+          .eq('service_id', serviceId)
+          .eq('area_type', 'service_default')
+          .is('sub_service_id', null)
+        
+        if (serviceError) {
+          console.error('Error fetching service areas:', serviceError)
+        } else {
+          serviceDefaultAreas = data || []
+        }
+      }
+      
+      console.log('Service-level areas found:', serviceDefaultAreas.length)
+      console.log('Direct sub-service areas found:', directAreas.length)
+      
+      // Combine all area mappings
+      const allAreas = [
+        ...serviceDefaultAreas,
+        ...directAreas
+      ]
+      
+      // Fetch city names for all city IDs
+      const cityIds = allAreas.map(a => a.city_id).filter(Boolean)
+      const { data: cities } = await supabase
+        .from('cities')
+        .select('id, name')
+        .in('id', cityIds)
+      
+      const cityMap = new Map(cities?.map(c => [c.id, c.name]) || [])
+      
+      // Format areas with city names
+      const formattedAreas = [
+        ...serviceDefaultAreas.map(area => ({
+          id: area.id,
+          area_type: 'service_default' as const,
+          state_code: area.state_code,
+          city_id: area.city_id,
+          city_name: cityMap.get(area.city_id),
+          area_source: subServiceId ? ('inherited' as const) : ('service' as const),
+        })),
+        ...directAreas.map(area => ({
+          id: area.id,
+          area_type: area.area_type as 'sub_service_inclusion' | 'sub_service_exclusion',
+          state_code: area.state_code,
+          city_id: area.city_id,
+          city_name: cityMap.get(area.city_id),
+          area_source: area.area_type === 'sub_service_inclusion' ? 'added' as const : 'excluded' as const,
+        })),
+      ]
+      
+      console.log('Total formatted areas:', formattedAreas.length)
+      
+      setServiceAreas(formattedAreas)
+    } catch (error) {
+      console.error('Error in openManageAreasDialog:', error)
+      setServiceAreas([])
+    } finally {
+      setLoadingAreas(false)
     }
-    
-    // Fetch service-level default areas (inherited by all sub-services)
-    const { data: serviceDefaultAreas, error: serviceError } = await supabase
-      .from('service_area_map')
-      .select('id, area_type, state_code, city_id, cities(name)')
-      .eq('service_id', serviceId)
-      .eq('area_type', 'service_default')
-      .is('sub_service_id', null)  // Explicitly filter for service-level areas
-    
-    if (serviceError) {
-      console.error('Error fetching service areas:', serviceError)
-    }
-    
-    console.log('Service-level areas found:', serviceDefaultAreas?.length || 0)
-    console.log('Direct sub-service areas found:', directAreas?.length || 0)
-    
-    // Combine and format areas
-    const formattedAreas = [
-      ...(serviceDefaultAreas || []).map(area => ({
-        id: area.id,
-        area_type: 'service_default' as const,
-        state_code: area.state_code,
-        city_id: area.city_id,
-        city_name: (area.cities as any)?.name,
-        area_source: 'inherited' as const,
-      })),
-      ...(directAreas || []).map(area => ({
-        id: area.id,
-        area_type: area.area_type as 'sub_service_inclusion' | 'sub_service_exclusion',
-        state_code: area.state_code,
-        city_id: area.city_id,
-        city_name: (area.cities as any)?.name,
-        area_source: area.area_type === 'sub_service_inclusion' ? 'added' as const : 'excluded' as const,
-      })),
-    ]
-    
-    console.log('Total formatted areas:', formattedAreas.length)
-    
-    setServiceAreas(formattedAreas)
-    setLoadingAreas(false)
   }
 
-  const handleAddArea = async (cityId: string, areaType: 'sub_service_inclusion' | 'sub_service_exclusion') => {
+  const handleAddArea = async (cityId: string, areaType?: 'sub_service_inclusion' | 'sub_service_exclusion') => {
     if (!selectedSubServiceForAreas) return
     
     const supabase = createClient()
     const city = availableCities.find(c => c.id === cityId)
     const state = availableStates.find(s => s.id === city?.state_id)
     
+    // Determine if we're adding to service or sub-service
+    const isServiceLevel = !selectedSubServiceForAreas.subServiceId
+    
+    const insertData: any = {
+      city_id: cityId,
+      state_code: state?.code,
+    }
+    
+    if (isServiceLevel) {
+      // Adding to service level
+      insertData.service_id = selectedSubServiceForAreas.serviceId
+      insertData.area_type = 'service_default'
+      insertData.sub_service_id = null
+    } else {
+      // Adding to sub-service level
+      insertData.sub_service_id = selectedSubServiceForAreas.subServiceId
+      insertData.area_type = areaType || 'sub_service_inclusion'
+    }
+    
     const { data, error } = await supabase
       .from('service_area_map')
-      .insert({
-        sub_service_id: selectedSubServiceForAreas.subServiceId,
-        area_type: areaType,
-        city_id: cityId,
-        state_code: state?.code,
-      })
+      .insert(insertData)
       .select()
       .single()
     
@@ -681,7 +739,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     
     toast({
       title: "Success",
-      description: `Area ${areaType === 'sub_service_inclusion' ? 'added' : 'excluded'}.`,
+      description: isServiceLevel ? "Service area added." : `Area ${areaType === 'sub_service_inclusion' ? 'added' : 'excluded'}.`,
     })
   }
 
@@ -807,6 +865,14 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                         onClick={() => openServiceDialog(service)}
                       >
                         <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openManageAreasDialog('', '', service.id, service.name)}
+                      >
+                        <MapPin className="mr-1 h-3 w-3" />
+                        Service Areas
                       </Button>
                       <Button
                         variant="ghost"
@@ -1059,11 +1125,16 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Manage Service Areas: {selectedSubServiceForAreas?.subServiceName}
+                {selectedSubServiceForAreas?.subServiceId 
+                  ? `Manage Service Areas: ${selectedSubServiceForAreas.subServiceName}`
+                  : `Manage Service Areas: ${selectedSubServiceForAreas?.serviceName}`
+                }
               </DialogTitle>
               <DialogDescription>
-                Service areas are inherited from &quot;{selectedSubServiceForAreas?.serviceName}&quot;. 
-                You can add additional areas or exclude inherited ones.
+                {selectedSubServiceForAreas?.subServiceId 
+                  ? `Service areas are inherited from "${selectedSubServiceForAreas.serviceName}". You can add additional areas or exclude inherited ones.`
+                  : 'Manage service-level areas that will be inherited by all sub-services.'
+                }
               </DialogDescription>
             </DialogHeader>
             
@@ -1127,12 +1198,14 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                               <TableCell>
                                 <Badge 
                                   variant={
-                                    area.area_source === 'inherited' ? 'secondary' : 
+                                    area.area_source === 'inherited' ? 'secondary' :
+                                    area.area_source === 'service' ? 'default' : 
                                     area.area_source === 'added' ? 'default' : 
                                     'destructive'
                                   }
                                 >
                                   {area.area_source === 'inherited' && 'Inherited'}
+                                  {area.area_source === 'service' && 'Service Default'}
                                   {area.area_source === 'added' && 'Added'}
                                   {area.area_source === 'excluded' && 'Excluded'}
                                 </Badge>
@@ -1151,7 +1224,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                                   >
                                     Exclude
                                   </Button>
-                                ) : (
+                                ) : area.area_source === 'service' || area.area_source === 'added' || area.area_source === 'excluded' ? (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -1159,7 +1232,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                                   >
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                   </Button>
-                                )}
+                                ) : null}
                               </TableCell>
                             </TableRow>
                           ))
