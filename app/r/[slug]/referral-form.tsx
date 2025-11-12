@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useToast } from "@/components/ui/use-toast"
 import { Upload, CheckCircle2, Loader2, ChevronRight, Moon, Sun, ChevronDown, Edit2, ArrowRight } from "lucide-react"
 import { saveStep1 } from "./save-step"
+import { logFormError } from "./error-logger"
 
 interface Service {
   id: string
@@ -133,6 +134,29 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       document.documentElement.classList.remove('dark')
     }
   }, [darkMode])
+
+  // Helper function to log errors
+  const logError = async (errorType: string, error: any, step: number, additionalData?: any) => {
+    await logFormError({
+      error_type: errorType,
+      error_message: error?.message || String(error),
+      error_stack: error?.stack,
+      user_email: formData.email || undefined,
+      referral_link_id: referralLinkId,
+      form_step: step,
+      form_data: {
+        ...additionalData,
+        hasServiceId: !!formData.service_id,
+        hasSubServiceId: !!formData.sub_service_id,
+        hasTimeline: !!formData.timeline,
+        hasBudget: !!formData.budget,
+        hasNotes: !!formData.notes,
+        fileCount: files.length
+      },
+      timestamp: new Date().toISOString(),
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+    })
+  }
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
@@ -374,12 +398,22 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     if (currentStep === 1) {
       // Step 1: Project Details - just validate and proceed
       if (!validateProjectDetails()) return
+      console.log('✅ Step 1 Validation Passed - Project Details:', {
+        service_id: formData.service_id,
+        sub_service_id: formData.sub_service_id
+      })
       setCurrentStep(2)
     } else if (currentStep === 2) {
       // Step 2: Contact Info - validate and save
       if (!validateContactInfo()) return
       
       setLoading(true)
+      console.log('🔄 Saving Step 2 - Contact Info with Service Data:', {
+        service_id: formData.service_id,
+        sub_service_id: formData.sub_service_id,
+        email: formData.email
+      })
+      
       try {
         const result = await saveStep1({
           referralLinkId,
@@ -396,22 +430,29 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         })
 
         if (result.error) {
+          console.error('❌ Step 2 Save Error:', result.error)
+          await logError('STEP2_SAVE_FAILED', result.error, 2, { savedLeadId })
+          
           toast({
             variant: "destructive",
             title: "Save Error",
-            description: "We couldn't save your information. Please try again.",
+            description: `Could not save: ${result.error.message}`,
           })
           setLoading(false)
           return
         }
 
+        console.log('✅ Step 2 Saved Successfully. Lead ID:', result.leadId)
         setSavedLeadId(result.leadId || null)
         setCurrentStep(3)
-      } catch (error) {
+      } catch (error: any) {
+        console.error('❌ Step 2 Exception:', error)
+        await logError('STEP2_EXCEPTION', error, 2)
+        
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Something went wrong. Please try again.",
+          description: error.message || "Failed to save. Please try again.",
         })
       } finally {
         setLoading(false)
@@ -431,7 +472,19 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('🚀 STEP 3: Final Submission Started')
+    console.log('📊 Form State:', {
+      savedLeadId,
+      service_id: formData.service_id,
+      sub_service_id: formData.sub_service_id,
+      timeline: formData.timeline,
+      budget: formData.budget,
+      notes: formData.notes,
+      filesCount: files.length
+    })
+    
     if (!formData.consent_terms) {
+      await logError('VALIDATION_TERMS_MISSING', new Error('Terms not accepted'), 3)
       toast({
         variant: "destructive",
         title: "Terms required",
@@ -442,6 +495,9 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
 
     // Require either sub_service_id OR service_id (for services without sub-categories)
     if (!formData.sub_service_id && !formData.service_id) {
+      await logError('VALIDATION_SERVICE_MISSING', new Error('No service selected'), 3, {
+        formData: { service_id: formData.service_id, sub_service_id: formData.sub_service_id }
+      })
       toast({
         variant: "destructive",
         title: "Incomplete information",
@@ -454,16 +510,25 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
     const supabase = createClient()
 
     try {
-      // Upload images
+      // Upload images with detailed logging
       let imageFilePaths: string[] = []
       if (files.length > 0) {
+        console.log(`📤 Uploading ${files.length} files...`)
         for (const file of files) {
           const fileName = `${Date.now()}-${file.name}`
+          console.log(`  Uploading: ${fileName} (${(file.size / 1024 / 1024).toFixed(2)} MB)`)
+          
           const { data, error } = await supabase.storage
             .from('lead-attachments')
             .upload(fileName, file)
 
-          if (error) throw error
+          if (error) {
+            console.error(`  ❌ Upload failed: ${fileName}`, error)
+            await logError('IMAGE_UPLOAD_FAILED', error, 3, { fileName, fileSize: file.size })
+            throw error
+          }
+          
+          console.log(`  ✅ Uploaded: ${fileName}`)
           imageFilePaths.push(fileName)
         }
       }
@@ -478,15 +543,6 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         budget_range: formData.budget || null,
         service_id: formData.service_id || null
       }
-
-      // Debug logging
-      console.log('📋 Form Submission Data:', {
-        service_id: formData.service_id,
-        sub_service_id: formData.sub_service_id,
-        budget: formData.budget,
-        timeline: formData.timeline,
-        extraDetails
-      })
 
       const nameParts = formData.name.trim().split(' ')
       const firstName = nameParts[0] || ''
@@ -511,41 +567,60 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         completion_status: 'submitted',
       }
 
+      console.log('💾 Submitting to database...', {
+        operation: savedLeadId ? 'UPDATE' : 'INSERT',
+        leadId: savedLeadId,
+        dataKeys: Object.keys(fullLeadData)
+      })
+
       if (savedLeadId) {
-        const { error: updateError } = await supabase
+        const { data: updatedData, error: updateError } = await supabase
           .from('leads')
           .update(fullLeadData)
           .eq('id', savedLeadId)
+          .select()
 
-        if (updateError) throw updateError
+        if (updateError) {
+          console.error('❌ Database UPDATE failed:', updateError)
+          await logError('DATABASE_UPDATE_FAILED', updateError, 3, { 
+            savedLeadId, 
+            fullLeadData 
+          })
+          throw updateError
+        }
+        
+        console.log('✅ Database UPDATE successful:', updatedData)
       } else {
-        const { error: insertError } = await supabase
+        const { data: insertedData, error: insertError } = await supabase
           .from('leads')
           .insert(fullLeadData)
+          .select()
 
-        if (insertError) throw insertError
+        if (insertError) {
+          console.error('❌ Database INSERT failed:', insertError)
+          await logError('DATABASE_INSERT_FAILED', insertError, 3, { 
+            fullLeadData 
+          })
+          throw insertError
+        }
+        
+        console.log('✅ Database INSERT successful:', insertedData)
       }
 
+      console.log('🎉 Form submission completed successfully!')
       setSubmitted(true)
       toast({
         title: "Success!",
         description: "Your request has been submitted. We'll be in touch soon!",
       })
     } catch (error: any) {
-      // Ignore referral_links permission errors (form already submitted successfully)
-      if (error.message && (error.message.includes('referral_links') || error.message.includes('permission denied'))) {
-        setSubmitted(true)
-        toast({
-          title: "Success!",
-          description: "Your request has been submitted. We'll be in touch soon!",
-        })
-        return
-      }
+      console.error('❌ FATAL ERROR in handleSubmit:', error)
+      await logError('SUBMISSION_FATAL_ERROR', error, 3, { savedLeadId })
       
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "Something went wrong. Please try again.",
+        title: "Submission Failed",
+        description: error.message || "Something went wrong. Please try again or contact support.",
       })
       setLoading(false)
     }
