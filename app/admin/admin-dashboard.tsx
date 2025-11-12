@@ -91,7 +91,7 @@ export default function AdminDashboard({
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full max-w-4xl grid-cols-6">
             <TabsTrigger value="leads">Leads</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
+            <TabsTrigger value="referrers">Referrers</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="areas">Areas</TabsTrigger>
             <TabsTrigger value="commissions">Commissions</TabsTrigger>
@@ -102,7 +102,7 @@ export default function AdminDashboard({
             <LeadsTab initialLeads={initialLeads} services={initialServices} />
           </TabsContent>
 
-          <TabsContent value="referrals" className="mt-6">
+          <TabsContent value="referrers" className="mt-6">
             <ReferralLinksTab initialLinks={initialReferralLinks} userRole={userRole} />
           </TabsContent>
 
