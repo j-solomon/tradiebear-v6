@@ -71,7 +71,6 @@ export default async function AdminPage() {
           )
         )
       `)
-      .eq('active', true)
       .order('name', { ascending: true }),
     supabase
       .from('support_tickets')
