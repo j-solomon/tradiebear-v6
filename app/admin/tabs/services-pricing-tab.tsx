@@ -593,17 +593,29 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     const supabase = createClient()
     
     // Fetch direct areas for this sub-service
-    const { data: directAreas } = await supabase
+    const { data: directAreas, error: directError } = await supabase
       .from('service_area_map')
       .select('id, area_type, state_code, city_id, cities(name)')
       .eq('sub_service_id', subServiceId)
     
-    // Fetch service-level default areas
-    const { data: serviceDefaultAreas } = await supabase
+    if (directError) {
+      console.error('Error fetching direct areas:', directError)
+    }
+    
+    // Fetch service-level default areas (inherited by all sub-services)
+    const { data: serviceDefaultAreas, error: serviceError } = await supabase
       .from('service_area_map')
       .select('id, area_type, state_code, city_id, cities(name)')
       .eq('service_id', serviceId)
       .eq('area_type', 'service_default')
+      .is('sub_service_id', null)  // Explicitly filter for service-level areas
+    
+    if (serviceError) {
+      console.error('Error fetching service areas:', serviceError)
+    }
+    
+    console.log('Service-level areas found:', serviceDefaultAreas?.length || 0)
+    console.log('Direct sub-service areas found:', directAreas?.length || 0)
     
     // Combine and format areas
     const formattedAreas = [
@@ -624,6 +636,8 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
         area_source: area.area_type === 'sub_service_inclusion' ? 'added' as const : 'excluded' as const,
       })),
     ]
+    
+    console.log('Total formatted areas:', formattedAreas.length)
     
     setServiceAreas(formattedAreas)
     setLoadingAreas(false)
