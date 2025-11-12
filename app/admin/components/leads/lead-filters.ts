@@ -14,9 +14,15 @@ interface Lead {
   homeowner_last?: string
   homeowner_email?: string
   homeowner_phone?: string
+  address_street?: string
+  city: string
+  state: string
+  zip: string
   notes?: string
   stage: string
   created_at: string
+  budget_estimate?: number
+  timeline?: string
   sub_service?: {
     id?: string
     name?: string
@@ -32,6 +38,7 @@ interface Lead {
     profiles?: {
       name?: string
       handle?: string
+      email?: string
     }
   }
   extra_details?: any
