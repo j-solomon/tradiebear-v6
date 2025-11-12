@@ -13,6 +13,7 @@ Before deploying, ensure you have:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (for address autocomplete)
 
 ## Deployment to Vercel
 
@@ -40,13 +41,24 @@ git push -u origin main
 
 ### Step 3: Add Environment Variables
 
-In Vercel project settings, add:
+In Vercel project settings → Environment Variables, add:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 ```
+
+**Google Maps API Setup:**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable the following APIs:
+   - **Places API** (for address autocomplete)
+   - **Maps JavaScript API** (for maps display)
+4. Go to Credentials → Create Credentials → API Key
+5. Copy the API key and add it to Vercel environment variables
+6. (Optional) Restrict the key to your domain for security
 
 ### Step 4: Deploy
 

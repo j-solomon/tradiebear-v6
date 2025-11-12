@@ -47,23 +47,7 @@ yarn install
 pnpm install
 \`\`\`
 
-### 2. Environment Setup
-
-Copy `.env.example` to `.env.local` and add your Supabase credentials:
-
-\`\`\`bash
-cp .env.example .env.local
-\`\`\`
-
-Update `.env.local` with your actual values:
-
-\`\`\`env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-\`\`\`
-
-### 3. Run Development Server
+### 2. Run Development Server
 
 \`\`\`bash
 npm run dev
@@ -178,13 +162,16 @@ The referral form supports:
 
 ### Environment Variables on Vercel
 
-Add these in your Vercel project settings:
+Add these in your Vercel project settings → Environment Variables:
 
 \`\`\`
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 \`\`\`
+
+**Note:** The `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is required for address autocomplete on the referral form. Get your API key from [Google Cloud Console](https://console.cloud.google.com/) and enable **Places API** and **Maps JavaScript API**.
 
 ## 🔧 Customization
 
