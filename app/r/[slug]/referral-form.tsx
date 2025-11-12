@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Upload, CheckCircle2, Loader2, ChevronRight, Moon, Sun, ChevronDown, Edit2, ArrowRight } from "lucide-react"
 import { saveStep1 } from "./save-step"
 import { logFormError } from "./error-logger"
+import { submitFinalLead } from "./submit-final"
 
 interface Service {
   id: string
@@ -506,6 +507,17 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
       return
     }
 
+    // Must have a saved lead ID to update
+    if (!savedLeadId) {
+      await logError('NO_LEAD_ID', new Error('Lead ID missing'), 3)
+      toast({
+        variant: "destructive",
+        title: "Session Error",
+        description: "Please start over from the beginning.",
+      })
+      return
+    }
+
     setLoading(true)
     const supabase = createClient()
 
@@ -533,78 +545,26 @@ export default function ReferralForm({ referralLinkId, services, subServices }: 
         }
       }
 
-      // Prepare data
-      const extraDetails: any = {
-        attachments: imageFilePaths.length > 0 ? imageFilePaths : [],
-        consent_email: formData.consent_unified,
-        consent_sms: formData.consent_unified,
-        consent_call: formData.consent_unified,
-        consent_terms: formData.consent_terms,
-        budget_range: formData.budget || null,
-        service_id: formData.service_id || null
-      }
-
-      const nameParts = formData.name.trim().split(' ')
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || ''
-
-      const fullLeadData = {
-        referral_id: referralLinkId,
-        sub_service_id: formData.sub_service_id || null,
-        homeowner_first: firstName,
-        homeowner_last: lastName,
-        homeowner_email: formData.email,
-        homeowner_phone: formData.phone,
-        address_street: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zip: formData.zip,
-        budget_estimate: null,
-        timeline: formData.timeline || null,
-        notes: formData.notes,
-        extra_details: extraDetails,
-        stage: 'submitted',
-        completion_status: 'submitted',
-      }
-
-      console.log('💾 Submitting to database...', {
-        operation: savedLeadId ? 'UPDATE' : 'INSERT',
+      console.log('🔐 Calling secure server action...')
+      
+      // Use secure server action instead of direct database update
+      const result = await submitFinalLead({
         leadId: savedLeadId,
-        dataKeys: Object.keys(fullLeadData)
+        email: formData.email,
+        phone: formData.phone,
+        timeline: formData.timeline,
+        notes: formData.notes,
+        budget: formData.budget,
+        imageFilePaths: imageFilePaths,
+        consent_terms: formData.consent_terms
       })
 
-      if (savedLeadId) {
-        const { data: updatedData, error: updateError } = await supabase
-          .from('leads')
-          .update(fullLeadData)
-          .eq('id', savedLeadId)
-          .select()
-
-        if (updateError) {
-          console.error('❌ Database UPDATE failed:', updateError)
-          await logError('DATABASE_UPDATE_FAILED', updateError, 3, { 
-            savedLeadId, 
-            fullLeadData 
-          })
-          throw updateError
-        }
-        
-        console.log('✅ Database UPDATE successful:', updatedData)
-      } else {
-        const { data: insertedData, error: insertError } = await supabase
-          .from('leads')
-          .insert(fullLeadData)
-          .select()
-
-        if (insertError) {
-          console.error('❌ Database INSERT failed:', insertError)
-          await logError('DATABASE_INSERT_FAILED', insertError, 3, { 
-            fullLeadData 
-          })
-          throw insertError
-        }
-        
-        console.log('✅ Database INSERT successful:', insertedData)
+      if (result.error) {
+        console.error('❌ Secure submission failed:', result.error)
+        await logError('SECURE_SUBMISSION_FAILED', new Error(result.error.message), 3, { 
+          savedLeadId 
+        })
+        throw new Error(result.error.message)
       }
 
       console.log('🎉 Form submission completed successfully!')
