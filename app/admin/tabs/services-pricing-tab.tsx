@@ -983,6 +983,17 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     })
   }
 
+  // Client-side filtering for service areas
+  const filteredAreas = serviceAreas.filter(area => {
+    if (!areaFilter) return true
+    const searchTerm = areaFilter.toLowerCase()
+    return (
+      area.state_code?.toLowerCase().includes(searchTerm) ||
+      area.county_name?.toLowerCase().includes(searchTerm) ||
+      area.city_name?.toLowerCase().includes(searchTerm)
+    )
+  })
+
   return (
     <Card>
       <CardHeader>
@@ -1460,15 +1471,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                     <Label>
                       Current Service Areas
                       <span className="ml-2 text-muted-foreground text-sm">
-                        ({serviceAreas.filter(area => {
-                          if (!areaFilter) return true
-                          const searchTerm = areaFilter.toLowerCase()
-                          return (
-                            area.state_code?.toLowerCase().includes(searchTerm) ||
-                            area.county_name?.toLowerCase().includes(searchTerm) ||
-                            area.city_name?.toLowerCase().includes(searchTerm)
-                          )
-                        }).length})
+                        ({filteredAreas.length})
                       </span>
                     </Label>
                   </div>
@@ -1485,15 +1488,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {serviceAreas.filter(area => {
-                          if (!areaFilter) return true
-                          const searchTerm = areaFilter.toLowerCase()
-                          return (
-                            area.state_code?.toLowerCase().includes(searchTerm) ||
-                            area.county_name?.toLowerCase().includes(searchTerm) ||
-                            area.city_name?.toLowerCase().includes(searchTerm)
-                          )
-                        }).length === 0 && areaFilter && (
+                        {filteredAreas.length === 0 && areaFilter && (
                           <TableRow>
                             <TableCell colSpan={6} className="text-center py-8">
                               <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -1509,24 +1504,8 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                               No service areas configured yet.
                             </TableCell>
                           </TableRow>
-                        ) : serviceAreas.filter(area => {
-                          if (!areaFilter) return true
-                          const searchTerm = areaFilter.toLowerCase()
-                          return (
-                            area.state_code?.toLowerCase().includes(searchTerm) ||
-                            area.county_name?.toLowerCase().includes(searchTerm) ||
-                            area.city_name?.toLowerCase().includes(searchTerm)
-                          )
-                        }).length > 0 ? (
-                          serviceAreas.filter(area => {
-                            if (!areaFilter) return true
-                            const searchTerm = areaFilter.toLowerCase()
-                            return (
-                              area.state_code?.toLowerCase().includes(searchTerm) ||
-                              area.county_name?.toLowerCase().includes(searchTerm) ||
-                              area.city_name?.toLowerCase().includes(searchTerm)
-                            )
-                          }).map((area) => (
+                        ) : (
+                          filteredAreas.map((area) => (
                             <TableRow key={area.id}>
                               <TableCell>{area.state_code || 'N/A'}</TableCell>
                               <TableCell>{area.county_name || 'N/A'}</TableCell>
