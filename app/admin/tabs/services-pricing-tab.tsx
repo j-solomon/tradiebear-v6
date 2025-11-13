@@ -13,7 +13,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/components/ui/use-toast"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight, MapPin, Loader2 } from "lucide-react"
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight, MapPin, Loader2, Search, X } from "lucide-react"
 
 interface ServiceCommission {
   id: string
@@ -1351,66 +1351,127 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
               </div>
             ) : (
               <div className="space-y-6 py-4">
-                {/* Add Area by ZIP Code */}
-                <div className="space-y-3">
-                  <Label>Add Area by ZIP Code</Label>
-                  <div className="flex gap-2">
+                {/* Filter and Add Button Header */}
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
                     <Input
-                      placeholder="Enter ZIP code..."
-                      value={zipSearch}
-                      onChange={(e) => setZipSearch(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleZipSearch(zipSearch)
-                      }}
-                      className="flex-1"
+                      placeholder="Filter by state, county, or city..."
+                      value={areaFilter}
+                      onChange={(e) => setAreaFilter(e.target.value)}
+                      className="max-w-md"
                     />
-                    <Button onClick={() => handleZipSearch(zipSearch)} disabled={zipSearch.length < 5}>
-                      Search ZIP
-                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Enter a ZIP code to quickly add a city to the service area.
-                  </p>
+                  <Button 
+                    onClick={() => setShowAddForm(!showAddForm)}
+                    className="shrink-0"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Area
+                  </Button>
                 </div>
-                
-                {/* Add Area Section */}
-                <div className="space-y-3">
-                  <Label>Or Browse by City</Label>
-                  <div className="flex gap-2">
-                    <select 
-                      className="flex-1 rounded-md border px-3 py-2"
-                      onChange={(e) => {
-                        if (e.target.value) {
-                          handleAddArea(e.target.value, 'sub_service_inclusion')
-                          e.target.value = ''
-                        }
-                      }}
-                    >
-                      <option value="">Select a location to add...</option>
-                      {availableCities
-                        .sort((a, b) => {
-                          const stateA = availableStates.find(s => s.id === a.state_id)
-                          const stateB = availableStates.find(s => s.id === b.state_id)
-                          return (stateA?.code || '').localeCompare(stateB?.code || '') || a.name.localeCompare(b.name)
-                        })
-                        .map(city => {
-                          const state = availableStates.find(s => s.id === city.state_id)
-                          return (
-                            <option key={city.id} value={city.id}>
-                              {state?.code} - {city.name}
-                            </option>
-                          )
-                        })}
-                    </select>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Select a location to add it to the service area.
-                  </p>
-                </div>
+
+                {/* Inline Add Form (shown when showAddForm is true) */}
+                {showAddForm && (
+                  <Card className="border-2 border-primary animate-in slide-in-from-top">
+                    <CardContent className="pt-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold">Add New Service Area</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Search by ZIP code or city name
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShowAddForm(false)
+                            setAddFormSearch('')
+                            setSearchResults([])
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Unified Search Input */}
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Search ZIP or City (e.g., 97201 or Portland)..."
+                          value={addFormSearch}
+                          onChange={(e) => setAddFormSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleUnifiedSearch(addFormSearch)
+                          }}
+                          className="flex-1"
+                          autoFocus
+                        />
+                        <Button 
+                          onClick={() => handleUnifiedSearch(addFormSearch)}
+                          disabled={addFormSearch.length < 3}
+                        >
+                          <Search className="h-4 w-4 mr-2" />
+                          Search
+                        </Button>
+                      </div>
+                      
+                      {/* Search Results */}
+                      {searchResults.length > 0 && (
+                        <div className="border rounded-md divide-y max-h-60 overflow-y-auto">
+                          {searchResults.map(result => (
+                            <div 
+                              key={result.id}
+                              className="flex items-center justify-between p-3 hover:bg-muted"
+                            >
+                              <div>
+                                <span className="font-medium">{result.name}</span>
+                                <span className="text-sm text-muted-foreground ml-2">
+                                  {result.county_name}, {result.state_code}
+                                </span>
+                              </div>
+                              <Button 
+                                size="sm"
+                                onClick={() => {
+                                  handleAddArea(result.id)
+                                  setShowAddForm(false)
+                                  setAddFormSearch('')
+                                  setSearchResults([])
+                                }}
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {searchResults.length === 0 && addFormSearch.length >= 3 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No locations found matching &quot;{addFormSearch}&quot;
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
                 
                 {/* Current Areas */}
                 <div className="space-y-3">
-                  <Label>Current Service Areas</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      Current Service Areas
+                      <span className="ml-2 text-muted-foreground text-sm">
+                        ({serviceAreas.filter(area => {
+                          if (!areaFilter) return true
+                          const searchTerm = areaFilter.toLowerCase()
+                          return (
+                            area.state_code?.toLowerCase().includes(searchTerm) ||
+                            area.county_name?.toLowerCase().includes(searchTerm) ||
+                            area.city_name?.toLowerCase().includes(searchTerm)
+                          )
+                        }).length})
+                      </span>
+                    </Label>
+                  </div>
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
@@ -1424,14 +1485,48 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {serviceAreas.length === 0 ? (
+                        {serviceAreas.filter(area => {
+                          if (!areaFilter) return true
+                          const searchTerm = areaFilter.toLowerCase()
+                          return (
+                            area.state_code?.toLowerCase().includes(searchTerm) ||
+                            area.county_name?.toLowerCase().includes(searchTerm) ||
+                            area.city_name?.toLowerCase().includes(searchTerm)
+                          )
+                        }).length === 0 && areaFilter && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8">
+                              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                                <Search className="h-8 w-8" />
+                                <p>No areas found matching &quot;{areaFilter}&quot;</p>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {serviceAreas.length === 0 && !areaFilter ? (
                           <TableRow>
                             <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                               No service areas configured yet.
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          serviceAreas.map((area) => (
+                        ) : serviceAreas.filter(area => {
+                          if (!areaFilter) return true
+                          const searchTerm = areaFilter.toLowerCase()
+                          return (
+                            area.state_code?.toLowerCase().includes(searchTerm) ||
+                            area.county_name?.toLowerCase().includes(searchTerm) ||
+                            area.city_name?.toLowerCase().includes(searchTerm)
+                          )
+                        }).length > 0 ? (
+                          serviceAreas.filter(area => {
+                            if (!areaFilter) return true
+                            const searchTerm = areaFilter.toLowerCase()
+                            return (
+                              area.state_code?.toLowerCase().includes(searchTerm) ||
+                              area.county_name?.toLowerCase().includes(searchTerm) ||
+                              area.city_name?.toLowerCase().includes(searchTerm)
+                            )
+                          }).map((area) => (
                             <TableRow key={area.id}>
                               <TableCell>{area.state_code || 'N/A'}</TableCell>
                               <TableCell>{area.county_name || 'N/A'}</TableCell>
@@ -1449,11 +1544,17 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                                     area.area_source === 'added' ? 'default' : 
                                     'destructive'
                                   }
+                                  className={
+                                    area.area_source === 'inherited' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                                    area.area_source === 'service' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 
+                                    area.area_source === 'added' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 
+                                    'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                                  }
                                 >
-                                  {area.area_source === 'inherited' && 'Inherited'}
-                                  {area.area_source === 'service' && 'Service Default'}
-                                  {area.area_source === 'added' && 'Added'}
-                                  {area.area_source === 'excluded' && 'Excluded'}
+                                  {area.area_source === 'inherited' && '📥 Inherited'}
+                                  {area.area_source === 'service' && '🏠 Service'}
+                                  {area.area_source === 'added' && '➕ Added'}
+                                  {area.area_source === 'excluded' && '⛔ Excluded'}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
