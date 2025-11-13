@@ -988,6 +988,8 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
       description: isExclusion ? "Area added back successfully." : "Area removed successfully.",
     })
   }
+  } // Added missing closing brace
+  // End of helper functions
 
   // Component render
   return (
