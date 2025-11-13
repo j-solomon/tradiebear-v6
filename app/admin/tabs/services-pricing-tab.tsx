@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -745,17 +745,15 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
   }
 
   // Client-side filtering for service areas
-  const filteredAreas = useMemo(() => {
-    return serviceAreas.filter(area => {
-      if (!areaFilter) return true
-      const searchTerm = areaFilter.toLowerCase()
-      return (
-        area.state_code?.toLowerCase().includes(searchTerm) ||
-        area.county_name?.toLowerCase().includes(searchTerm) ||
-        area.city_name?.toLowerCase().includes(searchTerm)
-      )
-    })
-  }, [serviceAreas, areaFilter])
+  const filteredAreas = serviceAreas.filter((area) => {
+    if (!areaFilter) return true
+    const searchTerm = areaFilter.toLowerCase()
+    return (
+      area.state_code?.toLowerCase().includes(searchTerm) ||
+      area.county_name?.toLowerCase().includes(searchTerm) ||
+      area.city_name?.toLowerCase().includes(searchTerm)
+    )
+  })
 
   const handleZipSearch = async (zip: string) => {
     if (!zip || zip.length < 5) return
