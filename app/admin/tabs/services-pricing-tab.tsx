@@ -745,14 +745,15 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
   }
 
   // Client-side filtering for service areas
-  const filteredAreas = serviceAreas.filter((area) => {
-    if (!areaFilter) return true
-    const searchTerm = areaFilter.toLowerCase()
-    const matches = area.state_code?.toLowerCase().includes(searchTerm) ||
-      area.county_name?.toLowerCase().includes(searchTerm) ||
-      area.city_name?.toLowerCase().includes(searchTerm)
-    return matches
-  })
+  // TEMPORARILY DISABLED FOR DEBUGGING
+  // const serviceAreas = serviceAreas.filter((area) => {
+  //   if (!areaFilter) return true
+  //   const searchTerm = areaFilter.toLowerCase()
+  //   const matches = area.state_code?.toLowerCase().includes(searchTerm) ||
+  //     area.county_name?.toLowerCase().includes(searchTerm) ||
+  //     area.city_name?.toLowerCase().includes(searchTerm)
+  //   return matches
+  // })
 
   const handleZipSearch = async (zip: string) => {
     if (!zip || zip.length < 5) return
@@ -1363,7 +1364,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                     <Label>
                       Current Service Areas
                       <span className="ml-2 text-muted-foreground text-sm">
-                        ({filteredAreas.length})
+                        ({serviceAreas.length})
                       </span>
                     </Label>
                     <Button 
@@ -1480,7 +1481,7 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredAreas.length === 0 && areaFilter && (
+                        {serviceAreas.length === 0 && areaFilter && (
                           <TableRow>
                             <TableCell colSpan={6} className="text-center py-8">
                               <div className="text-muted-foreground">
@@ -1490,14 +1491,14 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
                             </TableCell>
                           </TableRow>
                         )}
-                        {filteredAreas.length === 0 && !areaFilter ? (
+                        {serviceAreas.length === 0 && !areaFilter ? (
                           <TableRow>
                             <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                               No service areas configured yet.
                             </TableCell>
                           </TableRow>
-                        ) : filteredAreas.length > 0 ? (
-                          filteredAreas.map((area) => (
+                        ) : serviceAreas.length > 0 ? (
+                          serviceAreas.map((area) => (
                             <TableRow key={area.id}>
                               <TableCell>{area.state_code || 'N/A'}</TableCell>
                               <TableCell>{area.county_name || 'N/A'}</TableCell>
