@@ -748,11 +748,10 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
   const filteredAreas = serviceAreas.filter((area) => {
     if (!areaFilter) return true
     const searchTerm = areaFilter.toLowerCase()
-    return (
-      area.state_code?.toLowerCase().includes(searchTerm) ||
+    const matches = area.state_code?.toLowerCase().includes(searchTerm) ||
       area.county_name?.toLowerCase().includes(searchTerm) ||
       area.city_name?.toLowerCase().includes(searchTerm)
-    )
+    return matches
   })
 
   const handleZipSearch = async (zip: string) => {
