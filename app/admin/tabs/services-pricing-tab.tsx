@@ -82,6 +82,12 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
   }>>([])
   const [loadingAreas, setLoadingAreas] = useState(false)
   const [zipSearch, setZipSearch] = useState('')
+  
+  // New state for floating action button + inline form UX
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [areaFilter, setAreaFilter] = useState('')
+  const [addFormSearch, setAddFormSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
 
   const [serviceForm, setServiceForm] = useState({
     name: "",
@@ -107,6 +113,27 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     }
     loadGeographicData()
   }, [])
+
+  // Keyboard shortcuts for area management
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC to close form
+      if (e.key === 'Escape' && showAddForm) {
+        setShowAddForm(false)
+        setAddFormSearch('')
+        setSearchResults([])
+      }
+      
+      // Cmd/Ctrl + K to open add form (only when dialog is open)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k' && manageAreasDialogOpen) {
+        e.preventDefault()
+        setShowAddForm(true)
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showAddForm, manageAreasDialogOpen])
 
   const toggleServiceExpanded = (serviceId: string) => {
     const newExpanded = new Set(expandedServices)
@@ -747,6 +774,79 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
     }
   }
 
+  const handleUnifiedSearch = async (searchTerm: string) => {
+    if (!searchTerm || searchTerm.length < 3) return
+    
+    const supabase = createClient()
+    
+    // Check if it's a ZIP code (5 digits)
+    const isZip = /^\d{5}$/.test(searchTerm.trim())
+    
+    if (isZip) {
+      // Search via geo_zips table
+      const { data: zipData } = await supabase
+        .from('geo_zips')
+        .select('city_id')
+        .eq('code', searchTerm.trim())
+        .single()
+      
+      if (zipData?.city_id) {
+        // Get full city details
+        const { data: cityData } = await supabase
+          .from('cities')
+          .select(`
+            id,
+            name,
+            state_id,
+            county_id,
+            states(code),
+            counties(name)
+          `)
+          .eq('id', zipData.city_id)
+          .single()
+        
+        if (cityData) {
+          setSearchResults([{
+            id: cityData.id,
+            name: cityData.name,
+            state_code: (cityData.states as any)?.code,
+            county_name: (cityData.counties as any)?.name
+          }])
+        }
+      } else {
+        setSearchResults([])
+        toast({
+          variant: "destructive",
+          title: "ZIP not found",
+          description: `No city found for ZIP code ${searchTerm}`
+        })
+      }
+    } else {
+      // Search cities by name
+      const { data } = await supabase
+        .from('cities')
+        .select(`
+          id,
+          name,
+          state_id,
+          county_id,
+          states(code),
+          counties(name)
+        `)
+        .ilike('name', `%${searchTerm}%`)
+        .limit(10)
+      
+      if (data) {
+        setSearchResults(data.map((city: any) => ({
+          id: city.id,
+          name: city.name,
+          state_code: city.states?.code,
+          county_name: city.counties?.name
+        })))
+      }
+    }
+  }
+
   const handleAddArea = async (cityId: string, areaType?: 'sub_service_inclusion' | 'sub_service_exclusion') => {
     if (!selectedSubServiceForAreas) return
     
@@ -839,6 +939,11 @@ export default function ServicesPricingTab({ initialServices }: ServicesPricingT
       title: "Success",
       description: isServiceLevel ? "Service area added." : `Area ${areaType === 'sub_service_inclusion' ? 'added' : 'excluded'}.`,
     })
+    
+    // Auto-close the form and reset state
+    setShowAddForm(false)
+    setAddFormSearch('')
+    setSearchResults([])
   }
 
   const handleRemoveArea = async (areaId: string) => {
