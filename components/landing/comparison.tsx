@@ -4,14 +4,14 @@ import { traditionalWayPoints, tradiebearWayPoints } from '@/lib/landing-data'
 
 export function Comparison() {
   return (
-    <section className="py-20 md:py-32">
+    <section className="py-20 md:py-32 bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-text-dark mb-4">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
             Traditional Referrals vs. TradieBear
           </h2>
-          <p className="text-lg md:text-xl text-brand-text-muted max-w-3xl mx-auto">
+          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
             Stop losing leads in the shuffle. TradieBear ensures every referral is tracked, managed, and rewarded.
           </p>
         </div>
