@@ -3,6 +3,8 @@
 import { CheckCircle2, Link as LinkIcon, Mail, MessageSquare, Share2 } from 'lucide-react'
 import { processSteps, projectDetailsCollected } from '@/lib/how-it-works-data'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export function ProcessSteps() {
   return (
@@ -45,7 +47,7 @@ export function ProcessSteps() {
                 </p>
 
                 {/* Checkpoints */}
-                <ul className="space-y-3">
+                <ul className="space-y-3 mb-8">
                   {step.checkpoints.map((checkpoint, idx) => (
                     <li key={idx} className="flex items-start gap-3">
                       <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -53,6 +55,15 @@ export function ProcessSteps() {
                     </li>
                   ))}
                 </ul>
+
+                {/* CTA for Step 4 */}
+                {step.number === 4 && (
+                  <Link href="/signup">
+                    <Button size="lg" className="bg-brand-orange hover:bg-brand-orange-light text-white">
+                      Start Referring Today
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {/* Visual Card */}
