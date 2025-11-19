@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/auth/') ||
     pathname === '/' ||
     pathname === '/how-it-works' ||
+    pathname === '/vetting-process' ||
     pathname === '/service-types' ||
     pathname === '/privacy' ||
     pathname === '/terms' ||

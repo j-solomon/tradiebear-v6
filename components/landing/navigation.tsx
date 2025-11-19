@@ -30,6 +30,9 @@ export function Navigation({ isLoggedIn = false, userRole = null }: NavigationPr
             <Link href="/how-it-works" className="text-brand-text-dark hover:text-brand-orange transition-colors">
               How it Works
             </Link>
+            <Link href="/vetting-process" className="text-brand-text-dark hover:text-brand-orange transition-colors">
+              Vetting Process
+            </Link>
             <Link href="/service-types" className="text-brand-text-dark hover:text-brand-orange transition-colors">
               Service Types
             </Link>
@@ -37,7 +40,6 @@ export function Navigation({ isLoggedIn = false, userRole = null }: NavigationPr
               FAQ
             </Link>
           </div>
-
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
@@ -85,6 +87,13 @@ export function Navigation({ isLoggedIn = false, userRole = null }: NavigationPr
               onClick={() => setMobileMenuOpen(false)}
             >
               How it Works
+            </Link>
+            <Link 
+              href="/vetting-process" 
+              className="block py-2 text-brand-text-dark hover:text-brand-orange transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Vetting Process
             </Link>
             <Link 
               href="/service-types" 
