@@ -35,21 +35,21 @@ export function Services({ services }: ServicesProps) {
             return (
               <div 
                 key={service.id} 
-                className="bg-brand-charcoal p-6 hover:shadow-lg transition-shadow rounded-lg border border-gray-800 text-center"
+                className="bg-white p-6 hover:shadow-lg transition-shadow rounded-lg border border-gray-200 text-center"
               >
                 {/* Icon */}
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-orange/20 mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-orange/10 mb-4">
                   <Icon className="h-6 w-6 text-brand-orange" />
                 </div>
 
                 {/* Service Name */}
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-brand-text-dark mb-2">
                   {service.name}
                 </h3>
 
                 {/* Service Description */}
                 {service.description && (
-                  <p className="text-sm text-gray-300 line-clamp-2">
+                  <p className="text-sm text-brand-text-muted line-clamp-2">
                     {service.description}
                   </p>
                 )}

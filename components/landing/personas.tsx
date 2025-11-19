@@ -20,24 +20,24 @@ export function Personas() {
           {personaData.map((persona) => {
             const Icon = persona.icon
             return (
-              <div 
-                key={persona.title} 
-                className="bg-brand-charcoal p-6 hover:shadow-lg transition-shadow rounded-lg border border-gray-800"
+              <div
+                key={persona.title}
+                className="bg-white p-6 hover:shadow-lg transition-shadow rounded-lg border border-gray-200"
               >
                 {/* Icon */}
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-orange/20 mb-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-orange/10 mb-4">
                   <Icon className="h-6 w-6 text-brand-orange" />
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-semibold text-white mb-4">
+                <h3 className="text-xl font-semibold text-brand-text-dark mb-4">
                   {persona.title}
                 </h3>
 
                 {/* Points */}
                 <ul className="space-y-2">
                   {persona.points.map((point, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                    <li key={index} className="flex items-start gap-2 text-sm text-brand-text-muted">
                       <span className="text-brand-orange mt-0.5">•</span>
                       <span>{point}</span>
                     </li>

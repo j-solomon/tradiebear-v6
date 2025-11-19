@@ -38,22 +38,22 @@ export function WhyTradieBear() {
           {features.map((feature) => {
             const Icon = feature.icon
             return (
-              <div 
-                key={feature.title} 
-                className="bg-brand-charcoal p-8 text-center hover:shadow-lg transition-shadow rounded-lg border border-gray-800"
+              <div
+                key={feature.title}
+                className="bg-white p-8 text-center hover:shadow-lg transition-shadow rounded-lg border border-gray-200"
               >
                 {/* Icon */}
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-orange/20 mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-orange/10 mb-6">
                   <Icon className="h-8 w-8 text-brand-orange" />
                 </div>
 
                 {/* Title */}
-                <h3 className="text-2xl font-semibold text-white mb-4">
+                <h3 className="text-2xl font-semibold text-brand-text-dark mb-4">
                   {feature.title}
                 </h3>
 
                 {/* Description */}
-                <p className="text-gray-300">
+                <p className="text-brand-text-muted">
                   {feature.description}
                 </p>
               </div>
