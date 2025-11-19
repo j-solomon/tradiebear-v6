@@ -182,7 +182,7 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
           featured: false,
         })
 
-        if (result.success && result.data) {
+        if (result && result.success && result.data) {
           setServices(prev => [...prev, result.data])
           toast({
             title: 'Success',
@@ -195,7 +195,7 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
           description: formDescription.trim() || null,
         })
 
-        if (result.success) {
+        if (result && result.success) {
           setServices(prev =>
             prev.map(s =>
               s.id === editingService.id
@@ -216,7 +216,7 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
           description: result.error || 'Failed to save service',
           variant: 'destructive',
         })
-      } else {
+      } else if (result && result.success) {
         handleCloseDialog()
       }
     })
