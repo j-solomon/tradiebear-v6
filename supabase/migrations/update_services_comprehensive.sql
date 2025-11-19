@@ -1,8 +1,18 @@
 -- Comprehensive Services & Sub-Services Update
--- This migration replaces all services and sub-services with the new comprehensive list
+-- This migration adds new services and sub-services while preserving existing data
 
--- Step 1: Clear existing sub-services to avoid conflicts
-TRUNCATE TABLE sub_services CASCADE;
+-- Step 1: Add unique constraint if it doesn't exist (to prevent duplicates)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'sub_services_service_id_name_unique'
+  ) THEN
+    ALTER TABLE sub_services 
+    ADD CONSTRAINT sub_services_service_id_name_unique 
+    UNIQUE (service_id, name);
+  END IF;
+END $$;
 
 -- Step 2: Update/Insert main services
 -- We'll use UPSERT (INSERT ... ON CONFLICT) to handle existing services
@@ -303,7 +313,8 @@ BEGIN
   (roofing_id, 'Skylight installation & repair', true),
   (roofing_id, 'Roof ventilation upgrades', true),
   (roofing_id, 'Emergency roof tarping', true),
-  (roofing_id, 'Attic venting & insulation tie-ins', true);
+  (roofing_id, 'Attic venting & insulation tie-ins', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Siding sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -314,7 +325,8 @@ BEGIN
   (siding_id, 'Soffit and fascia repair', true),
   (siding_id, 'House wrap & moisture barrier install', true),
   (siding_id, 'Trim, corner boards & flashing details', true),
-  (siding_id, 'Exterior cladding removal & disposal', true);
+  (siding_id, 'Exterior cladding removal & disposal', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Kitchen Remodels sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -325,7 +337,8 @@ BEGIN
   (kitchen_id, 'Lighting & electrical upgrades', true),
   (kitchen_id, 'Plumbing fixture replacement', true),
   (kitchen_id, 'Flooring & subfloor repairs', true),
-  (kitchen_id, 'Open-concept wall removal', true);
+  (kitchen_id, 'Open-concept wall removal', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Bathroom Remodels sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -335,7 +348,8 @@ BEGIN
   (bathroom_id, 'Flooring (tile, LVP, waterproof laminate)', true),
   (bathroom_id, 'Lighting & exhaust fans', true),
   (bathroom_id, 'Plumbing fixture installation', true),
-  (bathroom_id, 'Heated floors & smart mirrors', true);
+  (bathroom_id, 'Heated floors & smart mirrors', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- ADUs sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -345,7 +359,8 @@ BEGIN
   (adu_id, 'DADUs / backyard cottages', true),
   (adu_id, 'Tiny homes / in-law suites', true),
   (adu_id, 'Permit & design planning', true),
-  (adu_id, 'Utility hookups & foundation work', true);
+  (adu_id, 'Utility hookups & foundation work', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Pole Barns sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -354,7 +369,8 @@ BEGIN
   (pole_barn_id, 'RV & boat storage structures', true),
   (pole_barn_id, 'Concrete slabs & footings', true),
   (pole_barn_id, 'Framing, roofing, and metal siding', true),
-  (pole_barn_id, 'Electrical & lighting install', true);
+  (pole_barn_id, 'Electrical & lighting install', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Decks & Fences sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -364,7 +380,8 @@ BEGIN
   (deck_fence_id, 'Handrails, stairs & safety gates', true),
   (deck_fence_id, 'Wood & vinyl fencing', true),
   (deck_fence_id, 'Chain link & privacy fences', true),
-  (deck_fence_id, 'Pergolas & shade structures', true);
+  (deck_fence_id, 'Pergolas & shade structures', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Flooring sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -374,7 +391,8 @@ BEGIN
   (flooring_id, 'Carpet install & removal', true),
   (flooring_id, 'Tile installation (bathroom, kitchen, entry)', true),
   (flooring_id, 'Subfloor repair & leveling', true),
-  (flooring_id, 'Baseboard & trim finishing', true);
+  (flooring_id, 'Baseboard & trim finishing', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Garage Doors sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -382,7 +400,8 @@ BEGIN
   (garage_door_id, 'Opener installation & smart systems', true),
   (garage_door_id, 'Spring & track repair', true),
   (garage_door_id, 'Insulated doors / weatherproofing', true),
-  (garage_door_id, 'Carriage-style and custom wood doors', true);
+  (garage_door_id, 'Carriage-style and custom wood doors', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Windows & Doors sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -390,7 +409,8 @@ BEGIN
   (window_door_id, 'Sliding glass & patio doors', true),
   (window_door_id, 'Entry & front door replacement', true),
   (window_door_id, 'French & double doors', true),
-  (window_door_id, 'Weatherstripping & energy efficiency upgrades', true);
+  (window_door_id, 'Weatherstripping & energy efficiency upgrades', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Cabinets sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -398,7 +418,8 @@ BEGIN
   (cabinet_id, 'Semi-custom cabinet install', true),
   (cabinet_id, 'Cabinet refacing & repainting', true),
   (cabinet_id, 'Soft-close hardware & pullouts', true),
-  (cabinet_id, 'Built-in shelving & storage', true);
+  (cabinet_id, 'Built-in shelving & storage', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Basement Finishing sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -407,7 +428,8 @@ BEGIN
   (basement_id, 'Egress windows & code compliance', true),
   (basement_id, 'Bathroom or wet bar addition', true),
   (basement_id, 'Waterproofing & sump systems', true),
-  (basement_id, 'Soundproofing walls & ceilings', true);
+  (basement_id, 'Soundproofing walls & ceilings', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Theater Rooms sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -416,7 +438,8 @@ BEGIN
   (theater_id, 'Custom cabinetry / risers', true),
   (theater_id, 'LED accent lighting', true),
   (theater_id, 'Sound insulation', true),
-  (theater_id, 'Smart control system integration', true);
+  (theater_id, 'Smart control system integration', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Golf Simulators sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -424,7 +447,8 @@ BEGIN
   (golf_id, 'Flooring / turf install', true),
   (golf_id, 'Electrical & lighting setup', true),
   (golf_id, 'Soundproofing / acoustic treatment', true),
-  (golf_id, 'Ventilation & climate control', true);
+  (golf_id, 'Ventilation & climate control', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Solar Panel Install sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -432,7 +456,8 @@ BEGIN
   (solar_id, 'Ground-mount systems', true),
   (solar_id, 'Inverter installation', true),
   (solar_id, 'Battery backup systems', true),
-  (solar_id, 'Net metering & permits', true);
+  (solar_id, 'Net metering & permits', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Interior & Exterior Painting sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -441,7 +466,8 @@ BEGIN
   (painting_id, 'Trim, baseboards, and doors', true),
   (painting_id, 'Staining (fences, decks, cabinets)', true),
   (painting_id, 'Pressure washing & prep work', true),
-  (painting_id, 'Epoxy garage floors', true);
+  (painting_id, 'Epoxy garage floors', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Gutters sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -449,7 +475,8 @@ BEGIN
   (gutter_id, 'Gutter guard systems', true),
   (gutter_id, 'Downspout installation', true),
   (gutter_id, 'Gutter cleaning & flushing', true),
-  (gutter_id, 'Fascia repair', true);
+  (gutter_id, 'Fascia repair', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Mold Remediation sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -457,7 +484,8 @@ BEGIN
   (mold_id, 'Removal & HEPA filtration', true),
   (mold_id, 'Crawlspace & attic remediation', true),
   (mold_id, 'Moisture barrier installation', true),
-  (mold_id, 'Structural drying & sealing', true);
+  (mold_id, 'Structural drying & sealing', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- HVAC / Air Conditioning sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -466,7 +494,8 @@ BEGIN
   (hvac_id, 'Furnace replacement', true),
   (hvac_id, 'Air duct cleaning & sealing', true),
   (hvac_id, 'Thermostat installation', true),
-  (hvac_id, 'Annual service & maintenance', true);
+  (hvac_id, 'Annual service & maintenance', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Water & Fire Damage sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -474,7 +503,8 @@ BEGIN
   (water_fire_id, 'Fire damage cleanup & rebuild', true),
   (water_fire_id, 'Smoke odor removal', true),
   (water_fire_id, 'Structural repairs', true),
-  (water_fire_id, 'Insurance claim documentation', true);
+  (water_fire_id, 'Insurance claim documentation', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Foundation Repair sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -482,7 +512,8 @@ BEGIN
   (foundation_id, 'Piering & stabilization', true),
   (foundation_id, 'Basement waterproofing', true),
   (foundation_id, 'Drainage correction', true),
-  (foundation_id, 'Crawlspace encapsulation', true);
+  (foundation_id, 'Crawlspace encapsulation', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Countertops sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -490,7 +521,8 @@ BEGIN
   (countertop_id, 'Granite & marble installation', true),
   (countertop_id, 'Solid surface / butcher block', true),
   (countertop_id, 'Backsplash tile integration', true),
-  (countertop_id, 'Removal & disposal of old tops', true);
+  (countertop_id, 'Removal & disposal of old tops', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Lawn & Garden / Landscaping sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -500,7 +532,8 @@ BEGIN
   (landscape_id, 'Planting & mulching', true),
   (landscape_id, 'Artificial turf', true),
   (landscape_id, 'Outdoor lighting', true),
-  (landscape_id, 'Pathways & stone patios', true);
+  (landscape_id, 'Pathways & stone patios', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Custom Lighting sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -508,14 +541,16 @@ BEGIN
   (lighting_id, 'Pendant & chandelier installation', true),
   (lighting_id, 'Landscape lighting', true),
   (lighting_id, 'Smart lighting systems', true),
-  (lighting_id, 'LED retrofit & dimmers', true);
+  (lighting_id, 'LED retrofit & dimmers', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Pergola / Gazebo sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
   (pergola_id, 'Custom pergola construction', true),
   (pergola_id, 'Wood or metal gazebos', true),
   (pergola_id, 'Shade covers & canopies', true),
-  (pergola_id, 'Lighting & electrical integration', true);
+  (pergola_id, 'Lighting & electrical integration', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Outdoor Kitchen sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -523,7 +558,8 @@ BEGIN
   (outdoor_kitchen_id, 'Stone veneer / masonry work', true),
   (outdoor_kitchen_id, 'Sink & plumbing setup', true),
   (outdoor_kitchen_id, 'Outdoor refrigeration & storage', true),
-  (outdoor_kitchen_id, 'Covered patio tie-ins', true);
+  (outdoor_kitchen_id, 'Covered patio tie-ins', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
   -- Insulation sub-services
   INSERT INTO sub_services (service_id, name, active) VALUES
@@ -531,7 +567,8 @@ BEGIN
   (insulation_id, 'Crawlspace insulation', true),
   (insulation_id, 'Wall cavity insulation', true),
   (insulation_id, 'Spray foam application', true),
-  (insulation_id, 'Air sealing & vapor barrier install', true);
+  (insulation_id, 'Air sealing & vapor barrier install', true)
+  ON CONFLICT (service_id, name) DO NOTHING;
 
 END $$;
 
