@@ -42,11 +42,13 @@ export default async function Home() {
     userRole = profile?.role as 'admin' | 'partner' | null
   }
 
-  // Fetch services from database
+  // Fetch featured services from database (for homepage display)
   const { data: services, error } = await supabase
     .from('services')
     .select('id, name, description')
-    .order('name', { ascending: true })
+    .eq('featured', true)
+    .order('display_order', { ascending: true })
+    .limit(12)
 
   // Fallback services if fetch fails
   const fallbackServices = [

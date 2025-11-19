@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogOut } from "lucide-react"
 import LeadsTab from "./tabs/leads-tab"
+import ServicesTab from "./tabs/services-tab"
 import ServicesPricingTab from "./tabs/services-pricing-tab"
 import SupportTab from "./tabs/support-tab"
 import ReferralLinksTab from "./tabs/referral-links-tab"
@@ -83,10 +84,11 @@ export default function AdminDashboard({
         <MetricsOverview metrics={metricsData} />
         
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-4xl grid-cols-4">
+          <TabsList className="grid w-full max-w-5xl grid-cols-5">
             <TabsTrigger value="leads">Leads</TabsTrigger>
             <TabsTrigger value="referrers">Referrers</TabsTrigger>
-            <TabsTrigger value="services-pricing">Services & Pricing</TabsTrigger>
+            <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="services-pricing">Pricing</TabsTrigger>
             <TabsTrigger value="support">Support</TabsTrigger>
           </TabsList>
 
@@ -96,6 +98,10 @@ export default function AdminDashboard({
 
           <TabsContent value="referrers" className="mt-6">
             <ReferralLinksTab initialLinks={initialReferralLinks} userRole={userRole} />
+          </TabsContent>
+
+          <TabsContent value="services" className="mt-6">
+            <ServicesTab initialServices={initialServices} />
           </TabsContent>
 
           <TabsContent value="services-pricing" className="mt-6">
