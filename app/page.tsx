@@ -50,7 +50,7 @@ export default async function Home() {
     .order('display_order', { ascending: true })
     .limit(12)
 
-  // Fallback services if fetch fails
+  // Fallback services if fetch fails or returns empty
   const fallbackServices = [
     { id: '1', name: 'Roofing', description: 'New roofs, repairs, replacements' },
     { id: '2', name: 'Remodels', description: 'Kitchen & bathroom renovations' },
@@ -66,7 +66,8 @@ export default async function Home() {
     { id: '12', name: '& More', description: 'Additional home improvement services' }
   ]
 
-  const displayServices = services || fallbackServices
+  // Use fallback if query failed, returned null, or returned empty array
+  const displayServices = (services && services.length > 0) ? services : fallbackServices
 
   return (
     <div className="min-h-screen">
