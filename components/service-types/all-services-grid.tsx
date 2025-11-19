@@ -20,6 +20,8 @@ interface AllServicesGridProps {
   services: Service[]
 }
 
+const VISIBLE_SUB_SERVICES = 4
+
 export function AllServicesGrid({ services }: AllServicesGridProps) {
   const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set())
 
@@ -53,10 +55,12 @@ export function AllServicesGrid({ services }: AllServicesGridProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {services.map((service) => {
             const Icon = getServiceIcon(service.name)
-            const subServices = service.sub_services || []
+            const subServices = Array.isArray(service.sub_services) ? service.sub_services : []
             const isExpanded = expandedServices.has(service.id)
-            const visibleSubServices = isExpanded ? subServices : subServices.slice(0, 4)
-            const hasMore = subServices.length > 4
+            const hasMore = subServices.length > VISIBLE_SUB_SERVICES
+            const visibleSubServices = hasMore && !isExpanded 
+              ? subServices.slice(0, VISIBLE_SUB_SERVICES) 
+              : subServices
 
             return (
               <div
@@ -82,24 +86,29 @@ export function AllServicesGrid({ services }: AllServicesGridProps) {
 
                 {/* Sub-Services List */}
                 {subServices.length > 0 && (
-                  <ul className="space-y-1.5 mb-3">
-                    {visibleSubServices.map((subService) => (
-                      <li key={subService.id} className="flex items-start gap-2 text-sm text-brand-text-dark">
-                        <span className="text-brand-orange flex-shrink-0">•</span>
-                        <span className="leading-tight">{subService.name}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                  <>
+                    <ul className="space-y-1.5 mb-3">
+                      {visibleSubServices.map((subService) => (
+                        <li key={subService.id} className="flex items-start gap-2 text-sm text-brand-text-dark">
+                          <span className="text-brand-orange flex-shrink-0 mt-0.5">•</span>
+                          <span className="leading-tight">{subService.name}</span>
+                        </li>
+                      ))}
+                    </ul>
 
-                {/* Show More/Less Link */}
-                {hasMore && (
-                  <button
-                    onClick={() => toggleExpanded(service.id)}
-                    className="text-sm font-semibold text-brand-orange hover:underline"
-                  >
-                    {isExpanded ? 'Show less' : `+${subServices.length - 4} more services`}
-                  </button>
+                    {/* Show More/Less Link */}
+                    {hasMore && (
+                      <button
+                        onClick={() => toggleExpanded(service.id)}
+                        className="text-sm font-semibold text-brand-orange hover:underline transition-all"
+                        type="button"
+                      >
+                        {isExpanded 
+                          ? 'Show less' 
+                          : `+${subServices.length - VISIBLE_SUB_SERVICES} more services`}
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )
