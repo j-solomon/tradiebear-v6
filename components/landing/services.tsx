@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { getServiceIcon } from '@/lib/landing-data'
 
@@ -32,11 +33,10 @@ export function Services({ services }: ServicesProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {displayServices.map((service) => {
             const Icon = getServiceIcon(service.name)
-            return (
-              <div 
-                key={service.id} 
-                className="bg-white p-6 hover:shadow-lg transition-shadow rounded-lg border border-gray-200 text-center"
-              >
+            const isMoreCard = service.name === '& More'
+            
+            const cardContent = (
+              <>
                 {/* Icon */}
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-brand-orange/10 mb-4">
                   <Icon className="h-6 w-6 text-brand-orange" />
@@ -53,6 +53,26 @@ export function Services({ services }: ServicesProps) {
                     {service.description}
                   </p>
                 )}
+              </>
+            )
+            
+            return isMoreCard ? (
+              <Link 
+                key={service.id}
+                href="/service-types"
+                className="bg-white p-6 hover:shadow-lg transition-shadow rounded-lg border border-gray-200 text-center cursor-pointer group"
+              >
+                {cardContent}
+                <p className="text-xs text-brand-orange font-semibold mt-2 group-hover:underline">
+                  View all services →
+                </p>
+              </Link>
+            ) : (
+              <div 
+                key={service.id} 
+                className="bg-white p-6 hover:shadow-lg transition-shadow rounded-lg border border-gray-200 text-center"
+              >
+                {cardContent}
               </div>
             )
           })}

@@ -30,7 +30,7 @@ export function Navigation({ isLoggedIn = false, userRole = null }: NavigationPr
             <Link href="/how-it-works" className="text-brand-text-dark hover:text-brand-orange transition-colors">
               How it Works
             </Link>
-            <Link href="#services" className="text-brand-text-dark hover:text-brand-orange transition-colors">
+            <Link href="/service-types" className="text-brand-text-dark hover:text-brand-orange transition-colors">
               Service Types
             </Link>
             <Link href="#faq" className="text-brand-text-dark hover:text-brand-orange transition-colors">
@@ -87,7 +87,7 @@ export function Navigation({ isLoggedIn = false, userRole = null }: NavigationPr
               How it Works
             </Link>
             <Link 
-              href="#services" 
+              href="/service-types" 
               className="block py-2 text-brand-text-dark hover:text-brand-orange transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
