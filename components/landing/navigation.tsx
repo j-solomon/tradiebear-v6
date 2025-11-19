@@ -27,7 +27,7 @@ export function Navigation({ isLoggedIn = false, userRole = null }: NavigationPr
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="#how-it-works" className="text-brand-text-dark hover:text-brand-orange transition-colors">
+            <Link href="/how-it-works" className="text-brand-text-dark hover:text-brand-orange transition-colors">
               How it Works
             </Link>
             <Link href="#services" className="text-brand-text-dark hover:text-brand-orange transition-colors">
@@ -80,7 +80,7 @@ export function Navigation({ isLoggedIn = false, userRole = null }: NavigationPr
         {mobileMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t">
             <Link 
-              href="#how-it-works" 
+              href="/how-it-works" 
               className="block py-2 text-brand-text-dark hover:text-brand-orange transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
