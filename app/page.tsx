@@ -1,16 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { Navigation } from '@/components/landing/navigation'
 import { Hero } from '@/components/landing/hero'
+import { TrustBar } from '@/components/landing/trust-bar'
 import { Comparison } from '@/components/landing/comparison'
 import { HowItWorks } from '@/components/landing/how-it-works'
 import { Personas } from '@/components/landing/personas'
 import { Services } from '@/components/landing/services'
 import { WhyTradieBear } from '@/components/landing/why-tradiebear'
+import { Testimonials } from '@/components/landing/testimonials'
 import { Verification } from '@/components/landing/verification'
 import { FAQ } from '@/components/landing/faq'
 import { FinalCTA } from '@/components/landing/final-cta'
+import { WhatIsTradieBear } from '@/components/landing/what-is-tradiebear'
 import { Footer } from '@/components/landing/footer'
+import { SchemaMarkup } from '@/components/landing/schema-markup'
 
 export const metadata = {
   title: "TradieBear - Earn Commissions by Connecting Homeowners with Trusted Contractors",
@@ -70,18 +73,26 @@ export default async function Home() {
   const displayServices = (services && services.length > 0) ? services : fallbackServices
 
   return (
-    <div className="min-h-screen">
-      <Navigation isLoggedIn={!!user} userRole={userRole} />
-      <Hero />
-      <Comparison />
-      <HowItWorks />
-      <Personas />
-      <Services services={displayServices} />
-      <WhyTradieBear />
-      <Verification />
-      <FAQ />
-      <FinalCTA />
-      <Footer />
-    </div>
+    <>
+      <SchemaMarkup />
+      <div className="min-h-screen">
+        <Navigation isLoggedIn={!!user} userRole={userRole} />
+        <main>
+          <Hero />
+          <TrustBar />
+          <Comparison />
+          <HowItWorks />
+          <Personas />
+          <Services services={displayServices} />
+          <WhyTradieBear />
+          <Testimonials />
+          <Verification />
+          <FAQ />
+          <FinalCTA />
+          <WhatIsTradieBear />
+        </main>
+        <Footer />
+      </div>
+    </>
   )
 }
