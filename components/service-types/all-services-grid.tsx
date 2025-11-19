@@ -2,27 +2,13 @@
 
 import { useState } from 'react'
 import { getServiceIcon } from '@/lib/service-types-data'
-
-interface SubService {
-  id: string
-  name: string
-  description?: string
-}
-
-interface Service {
-  id: string
-  name: string
-  description?: string
-  sub_services?: SubService[]
-}
-
-interface AllServicesGridProps {
-  services: Service[]
-}
+import { STATIC_SERVICES } from '@/lib/static-services-data'
 
 const VISIBLE_SUB_SERVICES = 4
 
-export function AllServicesGrid({ services }: AllServicesGridProps) {
+export function AllServicesGrid() {
+  // Use static data - exact service list as specified
+  const services = STATIC_SERVICES
   const [expandedServices, setExpandedServices] = useState<Set<string>>(new Set())
 
   const toggleExpanded = (serviceId: string) => {
@@ -55,7 +41,7 @@ export function AllServicesGrid({ services }: AllServicesGridProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {services.map((service) => {
             const Icon = getServiceIcon(service.name)
-            const subServices = Array.isArray(service.sub_services) ? service.sub_services : []
+            const subServices = service.sub_services
             const isExpanded = expandedServices.has(service.id)
             const hasMore = subServices.length > VISIBLE_SUB_SERVICES
             const visibleSubServices = hasMore && !isExpanded 
@@ -81,7 +67,7 @@ export function AllServicesGrid({ services }: AllServicesGridProps) {
 
                 {/* Service Description */}
                 <p className="text-sm text-brand-text-muted mb-4 leading-relaxed">
-                  {service.description || `Professional ${service.name.toLowerCase()} services`}
+                  {service.description}
                 </p>
 
                 {/* Sub-Services List */}

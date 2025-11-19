@@ -37,39 +37,11 @@ export default async function ServiceTypesPage() {
     userRole = profile?.role as 'admin' | 'partner' | null
   }
 
-  // Fetch all services with sub-services
-  const { data: services, error } = await supabase
-    .from('services')
-    .select(`
-      id,
-      name,
-      description,
-      sub_services (
-        id,
-        name,
-        description
-      )
-    `)
-    .eq('active', true)
-    .order('name', { ascending: true })
-
-  // Fallback services if fetch fails
-  const fallbackServices = [
-    {
-      id: '1',
-      name: 'Roofing',
-      description: 'Complete roofing solutions from replacement to repair',
-      sub_services: []
-    }
-  ]
-
-  const displayServices = services && services.length > 0 ? services : fallbackServices
-
   return (
     <div className="min-h-screen">
       <Navigation isLoggedIn={!!user} userRole={userRole} />
       <HeroSection />
-      <AllServicesGrid services={displayServices} />
+      <AllServicesGrid />
       <PopularServices />
       <CommissionStructure />
       <FinalCTA />
