@@ -13,6 +13,10 @@ export async function middleware(request: NextRequest) {
     pathname === '/reset-password' ||
     pathname.startsWith('/auth/') ||
     pathname === '/' ||
+    pathname === '/how-it-works' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
+    pathname === '/sitemap.xml' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api')
 
