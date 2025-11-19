@@ -8,8 +8,38 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
-import { Star, Save, AlertCircle } from 'lucide-react'
+import { 
+  Star, 
+  AlertCircle, 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  Power, 
+  PowerOff,
+  Save,
+  X
+} from 'lucide-react'
 import { updateServiceFeatured, updateServiceDisplayOrder } from '../actions/update-service-featured'
+import { createService, updateService, deleteService, toggleServiceActive } from '../actions/manage-services'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Textarea } from '@/components/ui/textarea'
 
 interface Service {
   id: string
@@ -17,16 +47,28 @@ interface Service {
   description: string | null
   featured?: boolean
   display_order?: number
+  active?: boolean
 }
 
 interface ServicesTabProps {
   initialServices: Service[]
 }
 
+type EditDialogMode = 'create' | 'edit' | null
+
 export default function ServicesTab({ initialServices }: ServicesTabProps) {
   const [services, setServices] = useState<Service[]>(initialServices)
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
+
+  // Dialog states
+  const [dialogMode, setDialogMode] = useState<EditDialogMode>(null)
+  const [editingService, setEditingService] = useState<Service | null>(null)
+  const [deleteConfirmService, setDeleteConfirmService] = useState<Service | null>(null)
+  
+  // Form states
+  const [formName, setFormName] = useState('')
+  const [formDescription, setFormDescription] = useState('')
 
   const featuredCount = services.filter(s => s.featured).length
 
@@ -98,10 +140,142 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
     })
   }
 
+  const handleOpenCreateDialog = () => {
+    setFormName('')
+    setFormDescription('')
+    setEditingService(null)
+    setDialogMode('create')
+  }
+
+  const handleOpenEditDialog = (service: Service) => {
+    setFormName(service.name)
+    setFormDescription(service.description || '')
+    setEditingService(service)
+    setDialogMode('edit')
+  }
+
+  const handleCloseDialog = () => {
+    setDialogMode(null)
+    setEditingService(null)
+    setFormName('')
+    setFormDescription('')
+  }
+
+  const handleSaveService = async () => {
+    if (!formName.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Service name is required',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    startTransition(async () => {
+      let result
+
+      if (dialogMode === 'create') {
+        result = await createService({
+          name: formName.trim(),
+          description: formDescription.trim() || null,
+          active: true,
+          featured: false,
+        })
+
+        if (result.success && result.data) {
+          setServices(prev => [...prev, result.data])
+          toast({
+            title: 'Success',
+            description: 'Service created successfully',
+          })
+        }
+      } else if (dialogMode === 'edit' && editingService) {
+        result = await updateService(editingService.id, {
+          name: formName.trim(),
+          description: formDescription.trim() || null,
+        })
+
+        if (result.success) {
+          setServices(prev =>
+            prev.map(s =>
+              s.id === editingService.id
+                ? { ...s, name: formName.trim(), description: formDescription.trim() || null }
+                : s
+            )
+          )
+          toast({
+            title: 'Success',
+            description: 'Service updated successfully',
+          })
+        }
+      }
+
+      if (result && !result.success) {
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to save service',
+          variant: 'destructive',
+        })
+      } else {
+        handleCloseDialog()
+      }
+    })
+  }
+
+  const handleDeleteService = async () => {
+    if (!deleteConfirmService) return
+
+    startTransition(async () => {
+      const result = await deleteService(deleteConfirmService.id)
+
+      if (result.success) {
+        setServices(prev => prev.filter(s => s.id !== deleteConfirmService.id))
+        toast({
+          title: 'Success',
+          description: 'Service deleted successfully',
+        })
+      } else {
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to delete service',
+          variant: 'destructive',
+        })
+      }
+
+      setDeleteConfirmService(null)
+    })
+  }
+
+  const handleToggleActive = async (service: Service) => {
+    startTransition(async () => {
+      const result = await toggleServiceActive(service.id, !service.active)
+
+      if (result.success) {
+        setServices(prev =>
+          prev.map(s =>
+            s.id === service.id ? { ...s, active: !service.active } : s
+          )
+        )
+        toast({
+          title: 'Success',
+          description: `Service ${!service.active ? 'activated' : 'deactivated'}`,
+        })
+      } else {
+        toast({
+          title: 'Error',
+          description: result.error || 'Failed to toggle service status',
+          variant: 'destructive',
+        })
+      }
+    })
+  }
+
   const featuredServices = services.filter(s => s.featured).sort((a, b) => 
     (a.display_order || 999) - (b.display_order || 999)
   )
   const unfeaturedServices = services.filter(s => !s.featured)
+  const activeServices = services.filter(s => s.active !== false)
+  const inactiveServices = services.filter(s => s.active === false)
 
   return (
     <div className="space-y-6">
@@ -225,18 +399,255 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
         </CardContent>
       </Card>
 
+      {/* All Services Management */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>All Services</CardTitle>
+              <CardDescription>
+                Manage all services - add, edit, or remove services
+              </CardDescription>
+            </div>
+            <Button onClick={handleOpenCreateDialog} disabled={isPending}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Service
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Active Services */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-muted-foreground">
+                Active Services ({activeServices.length})
+              </h3>
+              {activeServices.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No active services</p>
+              ) : (
+                <div className="space-y-2">
+                  {activeServices.map((service) => (
+                    <div
+                      key={service.id}
+                      className="flex items-center gap-4 rounded-lg border p-4 bg-white"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold">{service.name}</p>
+                          {service.featured && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Star className="h-3 w-3 mr-1 text-yellow-500 fill-yellow-500" />
+                              Featured
+                            </Badge>
+                          )}
+                        </div>
+                        {service.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {service.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditDialog(service)}
+                          disabled={isPending}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleActive(service)}
+                          disabled={isPending}
+                          title="Deactivate service"
+                        >
+                          <PowerOff className="h-4 w-4 text-orange-500" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeleteConfirmService(service)}
+                          disabled={isPending}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Inactive Services */}
+            {inactiveServices.length > 0 && (
+              <>
+                <div className="border-t pt-4" />
+                <div className="space-y-3">
+                  <h3 className="font-semibold text-sm text-muted-foreground">
+                    Inactive Services ({inactiveServices.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {inactiveServices.map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex items-center gap-4 rounded-lg border p-4 bg-gray-50 opacity-60"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold">{service.name}</p>
+                            <Badge variant="secondary" className="text-xs">
+                              Inactive
+                            </Badge>
+                          </div>
+                          {service.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {service.description}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenEditDialog(service)}
+                            disabled={isPending}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleActive(service)}
+                            disabled={isPending}
+                            title="Activate service"
+                          >
+                            <Power className="h-4 w-4 text-green-500" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDeleteConfirmService(service)}
+                            disabled={isPending}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>How This Works</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>• Check a service to feature it on the homepage</p>
-          <p>• Up to 12 services can be featured at once</p>
-          <p>• Use the &quot;Order&quot; field to control the display sequence (1-12)</p>
-          <p>• Services are displayed in a 4-column grid (3 rows of 4 services)</p>
-          <p>• Changes are applied immediately to the live homepage</p>
+          <p>• <strong>Featured Services:</strong> Check a service to feature it on the homepage (max 12)</p>
+          <p>• <strong>Display Order:</strong> Use the &quot;Order&quot; field to control the sequence (1-12)</p>
+          <p>• <strong>Edit Services:</strong> Click the edit icon to modify service name or description</p>
+          <p>• <strong>Deactivate:</strong> Click the power icon to hide a service without deleting it</p>
+          <p>• <strong>Delete:</strong> Remove services permanently (only if no sub-services or leads)</p>
+          <p>• <strong>Add New:</strong> Click &quot;Add New Service&quot; to create additional service categories</p>
         </CardContent>
       </Card>
+
+      {/* Edit/Create Dialog */}
+      <Dialog open={dialogMode !== null} onOpenChange={(open) => !open && handleCloseDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode === 'create' ? 'Add New Service' : 'Edit Service'}
+            </DialogTitle>
+            <DialogDescription>
+              {dialogMode === 'create' 
+                ? 'Create a new service category for your referral platform'
+                : 'Update the service name and description'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="service-name">Service Name *</Label>
+              <Input
+                id="service-name"
+                placeholder="e.g., Roofing, Plumbing, etc."
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                disabled={isPending}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="service-description">Description</Label>
+              <Textarea
+                id="service-description"
+                placeholder="Brief description of the service..."
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                disabled={isPending}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseDialog}
+              disabled={isPending}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveService}
+              disabled={isPending || !formName.trim()}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {dialogMode === 'create' ? 'Create Service' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmService !== null} onOpenChange={(open) => !open && setDeleteConfirmService(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the service &quot;{deleteConfirmService?.name}&quot;.
+              This action cannot be undone.
+              {deleteConfirmService && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800 text-sm">
+                  <p className="font-semibold mb-1">⚠️ Important:</p>
+                  <p>This service can only be deleted if it has no sub-services or associated leads. 
+                  Consider deactivating instead if you want to keep historical data.</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteService}
+              disabled={isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Service
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
