@@ -51,16 +51,16 @@ export default async function Home() {
   // Fallback services if fetch fails
   const fallbackServices = [
     { id: '1', name: 'Roofing', description: 'New roofs, repairs, replacements' },
-    { id: '2', name: 'Siding', description: 'Exterior siding installation' },
-    { id: '3', name: 'Windows', description: 'Window installation & replacement' },
-    { id: '4', name: 'Doors', description: 'Entry & interior doors' },
-    { id: '5', name: 'Remodels', description: 'Kitchen & bathroom renovations' },
-    { id: '6', name: 'ADUs', description: 'Accessory dwelling units' },
-    { id: '7', name: 'Plumbing', description: 'Repairs, installations, upgrades' },
-    { id: '8', name: 'Electrical', description: 'Wiring, panels, fixtures' },
-    { id: '9', name: 'Garage Doors', description: 'Installation, repair, openers' },
-    { id: '10', name: 'Decks & Fences', description: 'Outdoor living spaces & privacy' },
-    { id: '11', name: 'Pole Barns', description: 'Agricultural & storage buildings' },
+    { id: '2', name: 'Remodels', description: 'Kitchen & bathroom renovations' },
+    { id: '3', name: 'Windows & Doors', description: 'Window & doors installation & replacement' },
+    { id: '4', name: 'ADUs', description: 'Accessory dwelling unit construction' },
+    { id: '5', name: 'Garage Doors', description: 'Garage door installation and repair' },
+    { id: '6', name: 'Carpet Cleaning', description: 'Professional carpet cleaning services' },
+    { id: '7', name: 'Decks & Fences', description: 'Deck, pergola, and fencing builds' },
+    { id: '8', name: 'Flooring', description: 'LVP, hardwood, tile, and carpet installs' },
+    { id: '9', name: 'Plumbing & Electrical', description: 'Repairs, installations, upgrades' },
+    { id: '10', name: 'Siding', description: 'Exterior siding installation' },
+    { id: '11', name: 'Barns', description: 'Agricultural & storage buildings' },
     { id: '12', name: '& More', description: 'Additional home improvement services' }
   ]
 
