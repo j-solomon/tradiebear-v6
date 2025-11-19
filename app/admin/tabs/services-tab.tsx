@@ -172,7 +172,7 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
     }
 
     startTransition(async () => {
-      let result
+      let result: { success: boolean; error?: string; data?: any } | undefined
 
       if (dialogMode === 'create') {
         result = await createService({
