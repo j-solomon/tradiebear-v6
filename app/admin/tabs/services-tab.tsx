@@ -183,7 +183,8 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
         })
 
         if (result && result.success && result.data) {
-          setServices(prev => [...prev, result.data])
+          const newService = result.data
+          setServices(prev => [...prev, newService])
           toast({
             title: 'Success',
             description: 'Service created successfully',
@@ -196,10 +197,13 @@ export default function ServicesTab({ initialServices }: ServicesTabProps) {
         })
 
         if (result && result.success) {
+          const updatedName = formName.trim()
+          const updatedDescription = formDescription.trim() || null
+          const serviceId = editingService.id
           setServices(prev =>
             prev.map(s =>
-              s.id === editingService.id
-                ? { ...s, name: formName.trim(), description: formDescription.trim() || null }
+              s.id === serviceId
+                ? { ...s, name: updatedName, description: updatedDescription }
                 : s
             )
           )

@@ -53,7 +53,7 @@ export function Testimonials() {
 
               {/* Quote Text */}
               <p className="text-brand-text-dark mb-6 leading-relaxed">
-                &ldquo;{testimonial.quote}&rdquo;
+Grocery                &ldquo;{testimonial.quote}&rdquo;
               </p>
 
               {/* Author */}
